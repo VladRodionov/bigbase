@@ -1,4 +1,4 @@
-BigBase - read optimized, fully HBase-compatible, NoSQL Data Store
+BigBase
 ======
 
 ###Q: What is BigBase?
