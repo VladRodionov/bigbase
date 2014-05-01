@@ -1,14 +1,14 @@
-BigBase 1.0.0 Configuration Manual
-======
+##BigBase 1.0.0 Configuration Manual
 
-## 1. Introduction
+
+### 1. Introduction
 
 All BigBase - specific configuration options must be defined in hbase-site.xml file. After installation is complete
 you must update hbase-site.xml and sync these files on all HBase cluster's nodes.
 
-## 2. BigBase RowCache - specific configuration options
+### 2. BigBase RowCache - specific configuration options
 
-### 2.1 Defines RowCache coprocessor main class
+#### 2.1 Defines RowCache coprocessor main class
 ```xml
 <property>
 <name>hbase.coprocessor.user.region.classes</name>        
@@ -16,7 +16,7 @@ you must update hbase-site.xml and sync these files on all HBase cluster's nodes
 </property>   
 ```
 
-### 2.2 Set the maximum RAM memory (in bytes) allocated to RowCache.
+#### 2.2 Set the maximum RAM memory (in bytes) allocated to RowCache.
 ```xml
 <property>
         <name>offheap.rowcache.maxmemory</name>
@@ -24,7 +24,7 @@ you must update hbase-site.xml and sync these files on all HBase cluster's nodes
 </property>
 ```
 
-### 2.3 Sets approximate maximum number of objects in RowCache.
+#### 2.3 Sets approximate maximum number of objects in RowCache.
 
 Approximate maximum number of objects in the cache (per Region server). This is only the estimate -
 not the exact limit (there is no limit on number of objects in the cache). This number is just a hint 
@@ -41,7 +41,7 @@ Make sure to provide good estimate in offheap.rowcache.maxitems to ensure optima
 </property>
 ```
 
-### 2.4 Sets the compression codec.
+#### 2.4 Sets the compression codec.
 
 Compression codec (LZ4 , LZ4HC, Snappy, Deflate, None). By default, there is no compression.
 ```xml
@@ -51,7 +51,7 @@ Compression codec (LZ4 , LZ4HC, Snappy, Deflate, None). By default, there is no 
 </property>
 ```
 
-### 2.5 Sets the internal direct buffer size.
+#### 2.5 Sets the internal direct buffer size.
 ```xml
 <property>
         <name>offheap.rowcache.nativebuffer.size</name>
@@ -62,9 +62,9 @@ Compression codec (LZ4 , LZ4HC, Snappy, Deflate, None). By default, there is no 
 </property>
 ```
 
-## 3. BigBase BlockCache - specific configuration parameters
+### 3. BigBase BlockCache - specific configuration parameters
 
-### 3.1 Sets insertion point for LRU-2Q eviction algorithm used in the BlockCache (*).
+#### 3.1 Sets insertion point for LRU-2Q eviction algorithm used in the BlockCache (*).
 
 Insertion point for LRU-2Q eviction algorithm. By default, all new blocks will be inserted into block
 cache at insert point of 0.5 (in the middle of a queue). Value 1.0 will move insertion
@@ -76,7 +76,7 @@ point to the queue head. (Optional).
 </property>
 ```
 
-### 3.2 BlockCache maximum size in bytes.  
+#### 3.2 BlockCache maximum size in bytes.  
 
 Block cache size in bytes. The default size is 0 (cache disabled). To enable off heap  BlockCache set 
 the size to a value > 0. (Required)
@@ -87,7 +87,7 @@ the size to a value > 0. (Required)
 </property>
 ```
 
-### 3.3   Block cache implementation class (if you have your own). 
+#### 3.3   Block cache implementation class (if you have your own). 
 (Optional).
 ```xml
 <property>
@@ -96,7 +96,7 @@ the size to a value > 0. (Required)
 </property>     
 ```
 
-### 3.4 Sets the size of block references cache 
+#### 3.4 Sets the size of block references cache 
 
 When external storage (SSD) is enabled, see `offheap.blockcache.storage.enabled`). 
 
@@ -110,7 +110,7 @@ so you can size this cache accordingly. The default value is 0.1 * offheap.block
 </property>   
 ```
 
-### 3.5 Data block compression. 
+#### 3.5 Data block compression. 
 
 Block cache compression algorithm (None, LZ4, LZ4HC,  Snappy, Deflate). The default compression is LZ4.
 ```xml
@@ -120,7 +120,7 @@ Block cache compression algorithm (None, LZ4, LZ4HC,  Snappy, Deflate). The defa
 </property>  
 ```
 
-### 3.6 Sets external storage (L3) enabled/disabled.
+#### 3.6 Sets external storage (L3) enabled/disabled.
 
 External storage (L3 level cache) enabled. Default is false. (Optional)
 ```xml 
@@ -130,7 +130,7 @@ External storage (L3 level cache) enabled. Default is false. (Optional)
 </property>  
 ```
 
-### 3.7 External storage cache implementation class.
+#### 3.7 External storage cache implementation class.
 
 Default is file-based storage. (Optional).
 ```xml
@@ -140,7 +140,7 @@ Default is file-based storage. (Optional).
 </property>  
 ```
 
-### 3.8 Sets on heap cache enabled/disabled.
+#### 3.8 Sets on heap cache enabled/disabled.
 
 On heap block cache keeps frequently accessed data blocks (`INDEX`, `BLOOM`) to improve overall performance. The default  is 'true' (enabled) (Optional).
 ```xml               
@@ -150,7 +150,7 @@ On heap block cache keeps frequently accessed data blocks (`INDEX`, `BLOOM`) to 
 </property> 
 ```
 
-### 3.9 Sets the maximum size of on heap block cache.
+#### 3.9 Sets the maximum size of on heap block cache.
 
 On heap block cache size as a ratio of maximum available memory for JVM process. The default  is 0.10 (Optional). Some frequently accessed blocks (`INDEX`, `BLOOM`) are stored on-heap
 to improve performance.  
@@ -161,7 +161,7 @@ to improve performance.
 </property>
 ```
 
-### 3.10 Is this block cache persistent or not.
+#### 3.10 Is this block cache persistent or not.
 
 Persistence in this context means that cached block are stored on disk upon region server shutdown
 and are loaded from disk (see `offheap.blockcache.storage.dir`) upon server's start up. Default is false. (Optional)
@@ -172,7 +172,7 @@ and are loaded from disk (see `offheap.blockcache.storage.dir`) upon server's st
 </property>    
 ```
 
-### 3.11 Path to local directory where persistent cache data is stored.
+#### 3.11 Path to local directory where persistent cache data is stored.
 See `offheap.blockcache.persistent`. Default: undefined. (Required if `offheap.blockcache.persistent` was enabled)
 ```xml
 <property>
@@ -181,7 +181,7 @@ See `offheap.blockcache.persistent`. Default: undefined. (Required if `offheap.b
 </property>    
 ```
 
-### 3.12 Sets BlockCache snapshots enabled/disabled (**).
+#### 3.12 Sets BlockCache snapshots enabled/disabled (**).
 
 Whether online snapshots are enabled for persistent cache.
 When enabled, the system periodically make block cache reference data snapshots and store them in the directory 
@@ -197,7 +197,7 @@ Default: false. (Optional)
 </property> 
 ```
 
-### 3.13 BlockCache snapshot interval in seconds.
+#### 3.13 BlockCache snapshot interval in seconds.
 
 See  `offheap.blockcache.snapshots.enabled`. Default: 600.
 (Optional)
@@ -211,7 +211,7 @@ See  `offheap.blockcache.snapshots.enabled`. Default: 600.
 </property>   
 ```
 
-### 3.14 Sets the internal direct buffer size.
+#### 3.14 Sets the internal direct buffer size.
 
 Internal direct buffer size in bytes. By default, 1M. This must be larger than the largest Key-Value and the block size (which is, by default -64K ).
 ```xml
@@ -221,11 +221,11 @@ Internal direct buffer size in bytes. By default, 1M. This must be larger than t
 </property>
 ```
 
-## 4. External File Storage - specific configuration parameters
+### 4. External File Storage - specific configuration parameters
 
 > **Note:** External File Storage has not been tested in BigBase 1.0. The feature is sheduled for next release (1.1.0)
 
-### 4.1 External storage base directory (local file system). 
+#### 4.1 External storage base directory (local file system). 
 
 Default: unspecified. (Required)
 
@@ -236,7 +236,7 @@ Default: unspecified. (Required)
 </property>  	
 ```
 
-### 4.2 External storage maximum size in bytes.
+#### 4.2 External storage maximum size in bytes.
 
 Default: 0 (disabled). (Required)	
 
@@ -247,7 +247,7 @@ Default: 0 (disabled). (Required)
 </property> 	
 ```
 
-### 4.3 External storage write buffer size (bytes). 
+#### 4.3 External storage write buffer size (bytes). 
 
 Default: 8MB. (Optional)
 
@@ -258,7 +258,7 @@ Default: 8MB. (Optional)
 </property> 	
 ```
 
-### 4.4 External storage's number of write buffers. 
+#### 4.4 External storage's number of write buffers. 
 
 Default: 10. (Optional)
 
@@ -269,7 +269,7 @@ Default: 10. (Optional)
 </property> 		
 ```
 
-### 4.5 External storage's write buffer flush interval (milliseconds).
+#### 4.5 External storage's write buffer flush interval (milliseconds).
 
 Default: 30000. (Optional)
 
@@ -280,7 +280,7 @@ Default: 30000. (Optional)
 </property> 	
 ```
 
-### 4.6 External storage's data file maximum size (in bytes). 
+#### 4.6 External storage's data file maximum size (in bytes). 
 
 Default: 2000000000 (~ 2GB) (Optional). Maximum size of a data file is 2GB. (Optional).
 
