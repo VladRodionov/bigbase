@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+
+    <offline>false</offline>
+    <localRepository>${user.home}/.m2/repository</localRepository>
+
+    <profiles>
+        <profile>
+            <id>default</id>
+
+            <activation>
+            </activation>
+
+            <repositories>
+                <repository>
+                    <id>Repo1 Maven</id>
+                    <url>http://repo1.maven.org/maven2/</url>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                    <releases>
+                        <enabled>false</enabled>
+                    </releases>
+                </repository>
+                <repository>
+                    <id>JBoss</id>
+                    <url>http://repository.jboss.org/nexus/content/groups/public</url>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                </repository>
+                <repository>
+                    <id>Maven Snapshots</id>
+                    <url>http://snapshots.maven.codehaus.org/maven2</url>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                    <releases>
+                        <enabled>false</enabled>
+                    </releases>
+                </repository>
+            </repositories>
+
+        </profile>
+
+        <profile>
+            <id>mac</id>
+            <activation>
+                <os>
+                    <family>Mac</family>
+                    <arch>x86_64</arch>
+                </os>
+            </activation>
+            <properties>
+                <JAVA_INCLUDE>-I/Developer/SDKs/MacOSX10.6.sdk/System/Library/Frameworks/JavaVM.framework/Versions/Current/Headers/</JAVA_INCLUDE>
+                <jemalloc.include>include_mac</jemalloc.include>
+                <lib.packaging>dylib</lib.packaging>
+                <lib.path.plaftorm.suffix>Mac/x86_64</lib.path.plaftorm.suffix>
+                <lib.suffix>-mac</lib.suffix>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>linux</id>
+            <activation>
+                <os>
+                    <family>Linux</family>
+                    <arch>amd64</arch>
+                </os>
+            </activation>
+            <properties>
+                <JAVA_INCLUDE>-I/usr/java/latest/include/ -I/usr/java/latest/include/linux/</JAVA_INCLUDE>
+                <jemalloc.include>include_linux</jemalloc.include>
+                <lib.packaging>so</lib.packaging>
+                <lib.path.plaftorm.suffix>Linux/amd64</lib.path.plaftorm.suffix>
+                <lib.suffix></lib.suffix>
+            </properties>
+        </profile>
+
+    </profiles>
+
+</settings>

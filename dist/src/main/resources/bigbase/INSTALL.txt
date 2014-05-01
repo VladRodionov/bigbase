@@ -1,0 +1,48 @@
+BigBase 1.0.0 installation instructions
+
+Note: Install software on HBase Master host first.
+
+1. Shutdown HBase cluster (If you do an upgrade of HBase to BigBase)
+1. Extract BigBase tar file. 
+2. Run install.sh script. (Note: HBASE_HOME MUST be defined)
+   
+The installation script will:
+
+ 2.1 copies all needed library jars into $HBASE_HOME/lib,
+ 2.2 copies BigBase shell scripts (rcadmin.sh and synccluster.sh) into $HBASE_HOME/bin directory.
+ 2.3 copies BigBase configuration template file into $HBASE_HOME/conf directory.
+ 2.4 will update $HBASE_HOME/bin/hbase shell script to include specific BigBase jar files
+(the copy of previous version of hbase script will be created).
+
+
+3. Modify $HBASE_HOME/conf/hbase-site.xml to include BigBase specific configuration parameters
+   (see ./conf/hbase-site.xml.template for the list of parameters and CONFIGURATION manual)
+4. Sync $HBASE_HOME/ across HBase cluster using provided synccluster.sh.
+5. Start HBase cluster.
+
+
+BigBase Row Cache administration
+
+Row cache can be enabled/disabled per table:column_family
+
+1. To view row cache configuration for a particular table:
+  
+ $HBASE_HOME/bin/rcadmin.sh status TABLE
+
+2. To enable row cache for a table
+
+ $HBASE_HOME/bin/rcadmin.sh enable TABLE
+
+3. To enable row cache for a table:cf
+
+ $HBASE_HOME/bin/rcadmin.sh enable TABLE FAMILY
+
+4. To disable row cache for a table
+
+ $HBASE_HOME/bin/rcadmin.sh disable TABLE
+
+5. To disable row cache for a table:cf
+
+ $HBASE_HOME/bin/rcadmin.sh disable TABLE FAMILY  
+
+ 

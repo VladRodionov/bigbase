@@ -1,0 +1,242 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<!--
+/**
+ * Copyright 2009 The Apache Software Foundation
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+-->
+<configuration>
+<!--
+
+    **************************************************
+    *  Row Cache - specific configuration parameters *
+    **************************************************
+-->
+<property>
+<name>hbase.coprocessor.user.region.classes</name>
+        <description>Coprocessor's main class</description>
+        <value>com.inclouds.hbase.rowcache.RowCacheCoprocessor</value>
+</property>
+<property>
+        <name>offheap.rowcache.maxmemory</name>
+        <description>Maximum memory allocated to off-heap row cache (in bytes)</description>
+        <value>10000000000</value>
+</property>
+
+<property>
+        <name>offheap.rowcache.maxitems</name>
+        <description>Approximate maximum number of objects in the cache (per Region server). This is only the estimate -
+          not the exact limit (there is no limit on number of objects in the cache). This number is just a hint 
+          for coprocessor which allows to build internal data structures in a most efficient way. The formula to calculate
+          the maximum number is the following: 
+        
+          Max Number of Objects = Max Memory (offheap.rowcache.maxmemory) / Average Object Size
+                  
+          Make sure to provide good estimate in offheap.rowcache.maxitems to ensure optimal performance
+        
+           </description>
+        <value>50000000</value>
+</property>
+<property>
+        <name>offheap.rowcache.nativebuffer.size</name>
+        <description>Internal direct buffer size in bytes. By default, 256K. This size MUST be greater than the largest row one wants to
+                cache.
+         </description>
+        <value>262144</value>
+</property>
+<property>
+        <name>offheap.rowcache.compression</name>
+        <description>Compression codec (LZ4 , LZ4HC, Snappy, Deflate,  None). By default, there is no compression</description>
+        <value>None</value>
+</property>
+
+<!--
+
+    ****************************************************
+    *  Block Cache - specific configuration parameters *
+    ****************************************************
+-->
+  
+<property>
+        <name>offheap.blockcache.young.gen.factor</name>
+        <description>Insert point for LRU-2Q eviction algorithm. By default, all new blocks will be inserted into block
+                     cache at insert point of 0.5 (in the middle of a queue). Value 1.0 will move insertion
+                     point to the queue head. (Optional)
+        </description>
+        <value>0.5</value>
+</property>
+  
+<property>
+        <name>offheap.blockcache.size</name>
+        <description> Block cache size in bytes. The default size is 0 (cache disabled). To enable
+           off heap  block cache set the size to a value > 0. (Required)
+        </description>
+        <value>0</value>
+</property>
+  
+<property>
+        <name>offheap.blockcache.impl</name>
+        <description> Block cache implementation class. (Optional)
+        </description>
+        <value></value>
+</property>     
+  
+<property>
+        <name>offheap.blockcache.storage.ref.size</name>
+        <description> The size of in memory cache which stores block references when external storage is enabled
+         (see offheap.blockcache.storage.enabled). (Optional). The default value is 0.1 * offheap.blockcache.size.
+        </description>
+        <value></value>
+</property>   
+
+<property>
+        <name>offheap.blockcache.compression</name>
+        <description> Block cache compression algorithm (None, LZ4, Snappy).
+            The default compression is LZ4.
+        </description>
+        <value>LZ4</value>
+</property>  
+<property>
+        <name>offheap.blockcache.nativebuffer.size</name>
+        <description>Internal direct buffer size in bytes. By default, 1M. This must be larger than the largest Key-Value
+                and the block size (which is, by default -64K ).   
+         </description>
+        <value>1048576</value>
+</property>
+<property>
+        <name>offheap.blockcache.storage.enabled</name>
+        <description> External storage (L3 level cache) enabled. Default is false. (Optional)
+        </description>
+        <value>false</value>
+</property>  
+    
+<property>
+        <name>offheap.blockcache.storage.impl</name>
+        <description> External storage cache implementation class. Default is file-based storage. (Optional)
+        </description>
+        <value>com.koda.integ.hbase.storage.FileExtStorage</value>
+</property>  
+  
+<property>
+        <name>offheap.blockcache.onheap.enabled</name>
+        <description> On heap block cache keeps frequently accessed data blocks (INDEX, BLOOM)
+             to improve overall performance. The default  is 'true' (enabled)
+        </description>
+        <value>true</value>
+</property> 
+  
+  
+<property>
+        <name>offheap.blockcache.onheap.ratio</name>
+        <description> On heap block cache size as a ratio of maximum available memory for JVM process. 
+        	The default  is 0.10 (Optional). Some frequently accessed blocks (INDEX, BLOOM) are stored on-heap
+        	to improve performance.
+        </description>
+        <value>0.10</value>
+</property>  
+    
+<property>
+        <name>offheap.blockcache.persistent</name>
+        <description> Is this block cache persistent or not. Default is false.
+        Only block cache with 'offheap.blockcache.storage.enabled' = true (L3 cache) can be persistent.
+        Persistence in this context means that cached block references are stored on region server shutdown
+        and are loaded from disk (see 'offheap.blockcache.storage.dir') on server's start up.
+        </description>
+        <value>false</value>
+</property>    
+<property>
+        <name>offheap.blockcache.storage.dir</name>
+        <description> Path to local directory where persistent cache meta is stored
+        See 'offheap.blockcache.persistent'. Default: undefined.
+        </description>
+        <value></value>
+</property>    
+<property>
+        <name>offheap.blockcache.snapshots.enabled</name>
+        <description> Whether online snapshots are enabled for persistent cache.
+        Default: false. When enabled, the system periodically make block cache 
+        reference data snapshots and store them in 'offheap.blockcache.storage.dir'
+        </description>
+        <value>false</value>
+</property> 
+
+<property>
+        <name>offheap.blockcache.snapshots.interval</name>
+        <description> 
+        	Snapshot interval in seconds, See  'offheap.blockcache.snapshots.enabled.'
+        </description>
+        <value>600</value>
+</property>   
+    
+<!--
+
+    **************************************************************
+    *  External File Storage - specific configuration parameters *
+    **************************************************************
+-->
+
+<property>
+        <name>offheap.blockcache.file.storage.baseDir</name>
+        <description> 
+        	External storage base directory (local file system). Default: unspecified.
+        </description>
+        <value></value>
+</property>  	
+	
+<property>
+        <name>offheap.blockcache.file.storage.maxSize</name>
+        <description> 
+        	External storage maximum size in bytes. Default: 0 (disabled).
+        </description>
+        <value>0</value>
+</property> 	
+
+<property>
+        <name>offheap.blockcache.file.storage.bufferSize</name>
+        <description> 
+        	External storage write buffer size (bytes). Default: 8MB.
+        </description>
+        <value>8388608</value>
+</property> 	
+
+<property>
+        <name>offheap.blockcache.file.storage.numBuffers</name>
+        <description> 
+        	External storage's number of write buffers. Default: 10.
+        </description>
+        <value>10</value>
+</property> 		
+
+<property>
+        <name>offheap.blockcache.file.storage.flushInterval</name>
+        <description> 
+        	External storage's write buffer flush interval (milliseconds). Default: 30000.
+        </description>
+        <value>30000</value>
+</property> 	
+
+<property>
+        <name>offheap.blockcache.file.storage.fileSizeLimit</name>
+        <description> 
+        	External storage's data file maximum size (in bytes). Default: 2000000000 (~ 2GB)
+        </description>
+        <value>2000000000</value>
+</property> 	
+	  
+</configuration>

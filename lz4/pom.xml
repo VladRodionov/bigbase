@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd"
+         xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.karma</groupId>
+    <artifactId>liblz4</artifactId>
+    <packaging>${lib.packaging}</packaging>
+    <name>LZ4 Native</name>
+    <url>http://www.server.com</url>
+    <parent>
+        <groupId>com.karma</groupId>
+        <artifactId>bigbase</artifactId>
+        <version>1.0.0</version>
+    </parent>
+    <build>   
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>native-maven-plugin</artifactId>
+                <extensions>true</extensions>
+                <configuration>
+
+                    <!--compilerProvider>generic-classic</compilerProvider-->
+                    <compilerExecutable>gcc</compilerExecutable>
+                    <compilerStartOptions>
+                        <compilerStartOption>-O3 -std=c99 -Wall -W -Wundef -Wno-implicit-function-declaration -funroll-loops -c -fPIC -I. ${JAVA_INCLUDE} -DMAX_NB_ATTEMPTS=8</compilerStartOption>
+                    </compilerStartOptions>
+
+                    <sources>
+                        <source>
+                            <directory>src/main/native</directory>
+                            <fileNames>
+                                <fileName>lz4.c</fileName>
+                                <fileName>Lz4Impl.c</fileName>
+                                <fileName>lz4hc.c</fileName>
+                            </fileNames>
+                        </source>  
+                    </sources>
+
+                    <linkerStartOptions>
+                        <linkerStartOption>-shared</linkerStartOption>
+                    </linkerStartOptions>
+
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    <dependencies>
+    </dependencies>
+    <dependencyManagement>
+    </dependencyManagement>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+</project>

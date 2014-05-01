@@ -1,0 +1,36 @@
+Inclouds RowCache installation instructions
+
+
+1. Extract tar file 
+2. Copy content of ./lib directory into $HBASE_HOME/lib
+3. Copy ./bin/rcadmin.sh to $HBASE_HOME/bin
+4. Modify $HBASE_HOME/conf/hbase-site.xml to include RowCache specific configuration parameters
+   (see ./conf/hbase-site.xml.template for the list of parameters)
+5. Sync $HBASE_HOME/lib/* and $HBASE_HOME/conf/hbase-site.xml across HBase cluster.
+6. Copy license file to all HBase region server nodes
+7. Restart HBase cluster.
+
+
+Inclouds RowCache administration
+
+1. To view row cache configuration for a particular table:
+  
+ $HBASE_HOME/bin/rcadmin.sh status TABLE
+
+2. To enable row cache for a table
+
+ $HBASE_HOME/bin/rcadmin.sh enable TABLE
+
+3. To enable row cache for a table:cf
+
+ $HBASE_HOME/bin/rcadmin.sh enable TABLE CF
+
+4. To enable row cache for a table
+
+ $HBASE_HOME/bin/rcadmin.sh disable TABLE
+
+5. To enable row cache for a table:cf
+
+ $HBASE_HOME/bin/rcadmin.sh disable TABLE CF   
+
+ 

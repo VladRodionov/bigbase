@@ -1,0 +1,78 @@
+ROW-CACHE. Back to BigTable?s original design for Apache HBase 0.92+
+
+? 2013 Inclouds Technologies, LLC 
+
+
+Where is BigTable?s ScanCache?
+
+* ScanCache in Goggle?s BigTable is responsible for caching hot rows data. 
+* It improves read performance when read operation is much smaller than block size (which is cached in a block cache)
+* This feature is still missing in HBase (as of 0.96).  
+* It?s very hard to implement in Java as since it puts extreme pressure on GC (when done on heap).
+* GC pauses grow beyond acceptable levels in live enterprise environments due to heap fragmentation. 
+* Unpredictability of GC interruption hurts as well.
+* Maximum GC pause is ~ 0.5-2 sec per 1GB of heap. For 64GB of heap memory maximum GC stop the world pause can easily exceed 2 min (CMS garbage collector).
+* G1 garbage collector in Java 7 does not resolve the problem ( http://www.aioug.org/sangam12/Presentations/20155.pdf )
+
+ROW-CACHE
+
+* Fast Off Heap ScanCache implementation for HBase (0.92+).
+* Its much more efficient than block cache when average read operation size is much less than block size because it does not pollute block cache with data that is not needed. 
+* Cache size: 100?s of GBs to TBs of RAM with low predictable query latency (tested up to 240GB).
+* Can be used with the following eviction policies (LRU, LFU, FIFO, Random). LRU is default.
+* Pure 100% - compatible Java. The only native code is Snappy/LZ4 compression codecs (supported in Windows, Linux x86 and Mac OSX). It can works on any Java platform with compression disabled.
+* Sub-millisecond latencies (on network),  zero GC.
+* Implemented as RegionObserver coprocessor.
+* Easy installation. 
+
+ROW-CACHE (Details)
+
+* It caches data on read (read through cache). 
+* Cache key is rowkey:CF (row key + column family)
+* If row has multiple CFs ? they will be cached separately.
+* It caches the whole CF data (all columns+ all versions) even if only part of it was requested.
+* Works best when size of CF is < block size. With default block size of 64KB we are talking about kilobytes ? not megabytes.
+* Cached data is invalidated on every mutation for a particular rowkey:CF. Every time, the column family is updated/deleted for a given row key, the corresponding entry gets evicted from the cache. 
+* Make sure that your access is read mostly. 
+
+DETAILS (continued)
+
+* The ROW-CACHE can be enabled/disabled per table and per table:cf (column family).
+* The setting is visible in HBase shell and HBase UI. There is new ROW_CACHE attribute on a table and table:CF.  The table:cf settings of ROW_CACHE overwrites table?s setting. 
+* One can enable both: row cache and block cache on a table, but usually it either first or second needs to be enabled.
+* Its very convenient for testing: run test with ROW_CACHE = false, then using provided utility ? enable ROW_CACHE and re-run test. 
+* Tables which have random (small) read mostly access pattern will benefit most from ROW-CACHE (make sure disable block cache).
+* Tables, which are accessed in a more predictable sequential way, must have block cache enabled instead. 
+
+PERFORMANCE AND SCALABILITY
+
+* GET (small rows < 100 bytes): 175K operations per sec per one Region Server (from cache).
+* MULTI-GET (small rows < 100 bytes): > 1M records per second (network limited) per one Region Server.
+* LATENCY:  99% < 1ms (for GETs).
+* Vertical scalability: tested up to 240GB (the maximum available in Amazon EC2).
+* Horizontal scalability: limited by HBase scalability. 
+
+
+LIMITATIONS
+
+* Caches the whole rowkey:cf data even if only subset is requested (not a big deal when rows are small).
+* Not suitable for large rows (10s of KB and above).
+* Invalidates cache entry on each mutation operation, which involves this entry (rowkey:CF). Each time rowkey:CF is updated ? the corresponding cache entry is deleted to maintain full consistency.
+* Make sure that your access is read mostly. 
+* Cache compression. LZ4 ? Linux x86 and Mac OSX. Snappy ? Windows, Linux x86, Mac OSX.
+
+3RD PARTY LIBRARIES
+
+* Log4J ? 1.2.15. License: ASL 2.0
+* Snappy ? 1.0.4.1. License: ASL 2.0
+* Kryo ? 1.0.4. License:  BSD-3.
+* LZ4. License: BSD-3
+* Trove 3.0.1. License:  LGPL 2.1
+ 
+
+ 
+
+
+
+
+

@@ -1,0 +1,2 @@
+This module has to be built as a part of the parent build because of the way how assembly plugin finds dependend modules (the whole reactor context needs to be loaded into memory).
+If built alone, the build will fail.
