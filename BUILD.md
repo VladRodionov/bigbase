@@ -10,7 +10,6 @@
 ```
 $ mvn --settings settings.xml clean install -DskipTests
 ```
-
 To create Eclipse enironment files:
 ```
 $ mvn --settings settings.xml eclipse:eclipse -DskipTests
