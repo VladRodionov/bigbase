@@ -1,5 +1,4 @@
-BigBase BlockCache vs. HBase bucket cache (0.96+). 
-======
+##BigBase BlockCache vs. HBase bucket cache. 
 
 ### HBase versions supported:
 
