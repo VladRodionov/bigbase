@@ -1,7 +1,7 @@
 BigBase
 ======
 
-###Q: What is BigBase?
+###Q: What is BigBase2?
 
 BigBase is a read-optimized version of HBase NoSQL data store and is FULLY, 100% HBase compatible.
 100% compatibility means that the upgrade from HBase to BigBase and other way around does not 
