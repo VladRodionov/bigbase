@@ -19,8 +19,7 @@ By introducing multi-level caching to HBase. L1 - row cache, L2 - block cache in
 ###Q: What HBase versions are supported?
 
 HBase 0.94.x onwards (0.94, 0.96, 0.98). You may try 0.92 as well, but this version has not been tested with BigBase.
-> **Note:** BigBase block cache is not compatible with HBase 0.96+ but row cache can be used with any HBase 0.94 onwards.
-Full support for 0.96+ is scheduled for the next BigBase release (1.1.0)
+> **Note:** BigBase has two versions: 0.94 and 0.96+. See 'releases' section.
 
 ###Q: Can I upgrade existing HBase cluster, what are requirements and how long will this upgrade take?
 
