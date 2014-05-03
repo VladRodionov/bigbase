@@ -1078,8 +1078,9 @@ public class RowCache {
    *          the results
    * @param tableDesc
    *          the table desc
+ * @throws IOException 
    */
-  private void filterResults(List<KeyValue> results, HTableDescriptor tableDesc) {
+  private void filterResults(List<KeyValue> results, HTableDescriptor tableDesc) throws IOException {
     // results are sorted
     if (results.size() == 0)
       return;
@@ -1227,8 +1228,9 @@ public class RowCache {
    * @param count
    *          the count
    * @return true, if successful
+ * @throws IOException 
    */
-  private boolean doFilter(KeyValue kv, int count) {
+  private boolean doFilter(KeyValue kv, int count) throws IOException {
     // 1. Check timeRange
     RequestContext context = contextTLS.get();
     TimeRange timeRange = context.getTimeRange();
@@ -1727,7 +1729,7 @@ public class RowCache {
       byte[] tableName = tableDesc.getName();
       byte[] row = increment.getRow();
 
-      Set<byte[]> families = increment.familySet();
+      Set<byte[]> families = increment.getFamilyMap().keySet();
       // Invalidate list of family keys
       invalidateKeys(tableName, row, families);
       return result;
@@ -2109,9 +2111,10 @@ public class RowCache {
    * @param result
    *          the result
    * @return the list
+ * @throws IOException 
    */
   private long readColumn(long bufptr, byte[] row, byte[] family,
-      List<KeyValue> result) {
+      List<KeyValue> result) throws IOException {
 
     // Column format
     // Column:

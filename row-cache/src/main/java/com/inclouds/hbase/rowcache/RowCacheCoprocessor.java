@@ -26,6 +26,7 @@ import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Append;
 import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Increment;
 import org.apache.hadoop.hbase.client.Put;
@@ -33,7 +34,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.filter.WritableByteArrayComparable;
+import org.apache.hadoop.hbase.filter.ByteArrayComparable;
 import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.util.Pair;
@@ -154,7 +155,7 @@ public class RowCacheCoprocessor extends BaseRegionObserver {
 	public boolean preCheckAndDelete(
 			ObserverContext<RegionCoprocessorEnvironment> e, byte[] row,
 			byte[] family, byte[] qualifier, CompareOp compareOp,
-			WritableByteArrayComparable comparator, Delete delete,
+			ByteArrayComparable comparator, Delete delete,
 			boolean result) throws IOException {
 
 		  return rowCache.preCheckAndDelete(e.getEnvironment().getRegion().getTableDesc(), row, family, qualifier, delete, result);
@@ -169,7 +170,7 @@ public class RowCacheCoprocessor extends BaseRegionObserver {
 	public boolean preCheckAndPut(
 			ObserverContext<RegionCoprocessorEnvironment> e, byte[] row,
 			byte[] family, byte[] qualifier, CompareOp compareOp,
-			WritableByteArrayComparable comparator, Put put, boolean result)
+			ByteArrayComparable comparator, Put put, boolean result)
 			throws IOException {
 
 		  return rowCache.preCheckAndPut(e.getEnvironment().getRegion().getTableDesc(), row, family, 
@@ -183,7 +184,7 @@ public class RowCacheCoprocessor extends BaseRegionObserver {
 	 */
 	@Override
 	public void preDelete(ObserverContext<RegionCoprocessorEnvironment> e,
-			Delete delete, WALEdit edit, boolean writeToWAL) throws IOException {
+			Delete delete, WALEdit edit, Durability durability) throws IOException {
 
 	    rowCache.preDelete(e.getEnvironment().getRegion().getTableDesc(), delete);
 	}
@@ -222,7 +223,7 @@ public class RowCacheCoprocessor extends BaseRegionObserver {
 	 */
 	@Override
 	public void prePut(ObserverContext<RegionCoprocessorEnvironment> e,
-			Put put, WALEdit edit, boolean writeToWAL) throws IOException 
+			Put put, WALEdit edit, Durability durability) throws IOException 
 	{
 
 	    rowCache.prePut(e.getEnvironment().getRegion().getTableDesc(), put);

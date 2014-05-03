@@ -42,7 +42,6 @@ import org.apache.hadoop.hbase.io.hfile.CacheStats;
 import org.apache.hadoop.hbase.io.hfile.Cacheable;
 import org.apache.hadoop.hbase.io.hfile.CachedBlock;
 import org.apache.hadoop.hbase.io.hfile.CachedBlockQueue;
-import org.apache.hadoop.hbase.regionserver.metrics.SchemaMetrics;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.ClassSize;
 import org.apache.hadoop.hbase.util.FSUtils;
@@ -289,12 +288,7 @@ public class OnHeapBlockCache implements BlockCache, HeapSize {
     if (evict) {
       heapsize *= -1;
     }
-    Cacheable cachedBlock = cb.getBuffer();
-    SchemaMetrics schemaMetrics = cachedBlock.getSchemaMetrics();
-    if (schemaMetrics != null) {
-      schemaMetrics.updateOnCachePutOrEvict(
-          cachedBlock.getBlockType().getCategory(), heapsize, evict);
-    }
+
     return size.addAndGet(heapsize);
   }
 

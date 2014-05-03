@@ -29,6 +29,7 @@ import junit.framework.TestCase;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
@@ -38,13 +39,13 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.io.hfile.BlockCache;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
+import org.apache.hadoop.hbase.regionserver.BloomType;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.hbase.regionserver.StoreFile;
 import org.apache.hadoop.hbase.regionserver.StoreFileScanner;
 import org.apache.hadoop.hbase.regionserver.StoreScanner;
-import org.apache.hadoop.hbase.regionserver.StoreFile.BloomType;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import com.koda.integ.hbase.blockcache.OffHeapBlockCache;
@@ -272,7 +273,7 @@ public class BlockCacheStorageSimpleRegionTests extends TestCase{
       StoreScanner scanner = new StoreScanner(store,  store.getScanInfo(), scan,  null);
       long start = System.currentTimeMillis();
       int total = 0;
-      List<KeyValue> result = new ArrayList<KeyValue>();
+      List<Cell> result = new ArrayList<Cell>();
       while(scanner.next(result)){
         total++; result.clear();
       }
@@ -298,7 +299,7 @@ public class BlockCacheStorageSimpleRegionTests extends TestCase{
       //StoreScanner scanner = new StoreScanner(store,  store.getScanInfo(), scan,  null);
       long start = System.currentTimeMillis();
       int total = 0;
-      List<KeyValue> result = new ArrayList<KeyValue>();
+      List<Cell> result = new ArrayList<Cell>();
       while(scanner.next(result)){
         total++; result.clear();
       }
@@ -328,7 +329,7 @@ public class BlockCacheStorageSimpleRegionTests extends TestCase{
       StoreScanner scanner = new StoreScanner(store,  store.getScanInfo(), scan,  null);
       long start = System.currentTimeMillis();
       int total = 0;
-      List<KeyValue> result = new ArrayList<KeyValue>();
+      List<Cell> result = new ArrayList<Cell>();
       while(scanner.next(result)){
         total++; result.clear();
       }
@@ -343,7 +344,7 @@ public class BlockCacheStorageSimpleRegionTests extends TestCase{
       scanner = new StoreScanner(store,  store.getScanInfo(), scan,  null);
       start = System.currentTimeMillis();
       total = 0;
-      result = new ArrayList<KeyValue>();
+      result = new ArrayList<Cell>();
       while(scanner.next(result)){
         total++; result.clear();
       }
@@ -365,7 +366,7 @@ public class BlockCacheStorageSimpleRegionTests extends TestCase{
         Map<byte[], Store> storeMap = region.getStores();
         Collection<Store> stores = storeMap.values();
         Store store = stores.iterator().next();
-        List<StoreFile> files = store.getStorefiles();
+        Collection<StoreFile> files = store.getStorefiles();
         start = System.currentTimeMillis();        
         int count = 0;
         for(StoreFile file: files){
@@ -402,10 +403,12 @@ public class BlockCacheStorageSimpleRegionTests extends TestCase{
       Map<byte[], Store> storeMap = region.getStores();
       Collection<Store> stores = storeMap.values();
       Store store = stores.iterator().next();
-      List<StoreFile> files = store.getStorefiles();
+      Collection<StoreFile> files = store.getStorefiles();
+      StoreFile[] array = new StoreFile[files.size()];
+      files.toArray(array);
       for(int i =0; i < N/10; i++){
 
-        StoreFile file = files.get(r.nextInt(files.size()));        
+        StoreFile file = array[r.nextInt(files.size())];        
         byte[] row = (ROW_PREFIX+r.nextInt(N)).getBytes();         
         StoreFile.Reader reader = file.createReader();
         StoreFileScanner scanner = reader.getStoreFileScanner(false, false);
@@ -452,7 +455,7 @@ public class BlockCacheStorageSimpleRegionTests extends TestCase{
         StoreScanner scanner = new StoreScanner(store,  store.getScanInfo(), scan,  null);
 
         int total = 0;     
-        List<KeyValue> result = new ArrayList<KeyValue>();
+        List<Cell> result = new ArrayList<Cell>();
         while(total ++ < M && scanner.next(result) != false){
           totalScanned++; result.clear();
         }

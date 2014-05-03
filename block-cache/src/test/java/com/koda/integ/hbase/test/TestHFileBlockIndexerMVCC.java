@@ -29,6 +29,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.SmallTests;
+import org.apache.hadoop.hbase.KeyValue.KVComparator;
 import org.apache.hadoop.hbase.io.hfile.HFileBlockIndexer;
 import org.apache.hadoop.io.RawComparator;
 import org.junit.experimental.categories.Category;
@@ -49,7 +50,7 @@ public class TestHFileBlockIndexerMVCC extends TestCase{
   static byte[] CQ = new byte[]{'c'};
   static int[] indexData;
   static long memstoreTS = 1234567;
-  static RawComparator<byte[]> comparator = KeyValue.KEY_COMPARATOR;
+  static KVComparator comparator = KeyValue.COMPARATOR;
 
   
   @Override

@@ -23,6 +23,7 @@ import java.util.concurrent.ExecutorService;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HTableInterface;
 
 public class TestCoprocessorEnvironment implements CoprocessorEnvironment{
@@ -62,11 +63,7 @@ public class TestCoprocessorEnvironment implements CoprocessorEnvironment{
     return 0;
   }
 
-  @Override
-  public HTableInterface getTable(byte[] tableName) throws IOException {
-    // TODO Auto-generated method stub
-    return null;
-  }
+
 
   @Override
   public int getVersion() {
@@ -74,11 +71,19 @@ public class TestCoprocessorEnvironment implements CoprocessorEnvironment{
     return 0;
   }
 
-  @Override
-  public HTableInterface getTable(byte[] arg0, ExecutorService arg1)
-      throws IOException {
-    // TODO Auto-generated method stub
-    return null;
-  }
+
+
+@Override
+public HTableInterface getTable(TableName tableName) throws IOException {
+	// TODO Auto-generated method stub
+	return null;
+}
+
+@Override
+public HTableInterface getTable(TableName tableName, ExecutorService service)
+		throws IOException {
+	// TODO Auto-generated method stub
+	return null;
+}
 
 }

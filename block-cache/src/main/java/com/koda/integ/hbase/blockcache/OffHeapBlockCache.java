@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.io.HeapSize;
 import org.apache.hadoop.hbase.io.hfile.BlockCache;
 import org.apache.hadoop.hbase.io.hfile.BlockCacheColumnFamilySummary;
@@ -270,7 +271,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
   public OffHeapBlockCache(Configuration conf)
   {
       this.blockSize = conf.getInt("hbase.offheapcache.minblocksize",
-              HFile.DEFAULT_BLOCKSIZE);  
+    		  HColumnDescriptor.DEFAULT_BLOCKSIZE);  
  
       blockCacheMaxSize = conf.getLong(BLOCK_CACHE_MEMORY_SIZE, 0L);
       if(blockCacheMaxSize == 0L){

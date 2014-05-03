@@ -23,7 +23,7 @@ import java.nio.ByteBuffer;
 import org.apache.hadoop.hbase.io.hfile.BlockType;
 import org.apache.hadoop.hbase.io.hfile.Cacheable;
 import org.apache.hadoop.hbase.io.hfile.CacheableDeserializer;
-import org.apache.hadoop.hbase.regionserver.metrics.SchemaMetrics;
+
 
 // TODO: Auto-generated Javadoc
 /**
@@ -65,6 +65,18 @@ public class ByteArrayCacheable implements Cacheable {
 			b.get(data);
 			return new ByteArrayCacheable(data);
 		}
+
+		@Override
+		public Cacheable deserialize(ByteBuffer b, boolean reuse)
+				throws IOException {
+			return deserialize(b);
+		}
+
+		@Override
+		public int getDeserialiserIdentifier() {
+			// TODO Auto-generated method stub
+			return 0;
+		}
 		
 	};
 	
@@ -84,13 +96,7 @@ public class ByteArrayCacheable implements Cacheable {
 		return ByteArrayCacheable.deserializer;
 	}
 
-	/* (non-Javadoc)
-	 * @see org.apache.hadoop.hbase.io.hfile.Cacheable#getSchemaMetrics()
-	 */
-	@Override
-	public SchemaMetrics getSchemaMetrics() {
-		return null;
-	}
+
 
 	/* (non-Javadoc)
 	 * @see org.apache.hadoop.hbase.io.hfile.Cacheable#getSerializedLength()

@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
@@ -131,7 +132,7 @@ public class RegionServerPoker {
 //						LOG.info("Total kvs ="+ kvs.size()+ " kv size="+size+
 //								" f="+kv.getFamilyLength()+" c="+ kv.getQualifierLength()+" ts="+8+" v="+kv.getValueLength()+" row="+kv.getRowLength());
 						
-						totalSize.addAndGet(res.getBytes().getLength());
+						totalSize.addAndGet(getLength(res));
 					}
 				}
 				LOG.info(Thread.currentThread().getName()+" finished");
@@ -141,7 +142,20 @@ public class RegionServerPoker {
 			}
 			
 		}
-
+		/**
+		 * This is approximate length
+		 * 
+		 * @param r
+		 * @return length 
+		 */
+		private int getLength(Result r)
+		{
+			int len =0;
+			for(Cell c: r.listCells()){
+				len += c.getFamilyLength() + c.getQualifierLength() + c.getRowLength() + c.getValueLength();
+			}
+			return len;
+		}
 		private void checkFailed(Result[] r) {			
 			for(Result res: r){
 				if(res.isEmpty()) failed.incrementAndGet();

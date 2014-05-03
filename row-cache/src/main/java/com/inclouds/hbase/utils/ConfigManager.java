@@ -110,7 +110,9 @@ public class ConfigManager {
 			LOG.error(e);
 		} catch (ZooKeeperConnectionException e) {
 			LOG.error(e);
-		}
+		} catch (IOException e) {
+			LOG.error(e);
+	    }
 		
 	
 	}

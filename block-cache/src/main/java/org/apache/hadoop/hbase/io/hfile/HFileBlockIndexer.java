@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.List;
 
 //import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.KeyValue.KVComparator;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.WritableUtils;
@@ -340,7 +341,7 @@ public class HFileBlockIndexer {
 //  }
 
   public static int seekBefore(ByteBuffer block, byte[] buf, int off,
-      int len, int[] indexData, boolean strict, RawComparator<byte[]> comparator) {
+      int len, int[] indexData, boolean strict, KVComparator comparator) {
 
     
     // TODO check first  index  first - short-circuit

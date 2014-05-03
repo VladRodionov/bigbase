@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTable;
@@ -171,7 +172,7 @@ public class RandomReadsPerf {
 						completed.addAndGet(batchSize);
 						for(Result res: r){
 						
-							totalSize.addAndGet(res.getBytes().getLength());
+							totalSize.addAndGet(getLength(res));
 						}
 					
 					}
@@ -184,6 +185,21 @@ public class RandomReadsPerf {
 			
 		}
 
+		/**
+		 * This is approximate length
+		 * 
+		 * @param r
+		 * @return length 
+		 */
+		private int getLength(Result r)
+		{
+			int len =0;
+			for(Cell c: r.listCells()){
+				len += c.getFamilyLength() + c.getQualifierLength() + c.getRowLength() + c.getValueLength();
+			}
+			return len;
+		}
+		
 		private void checkFailed(Result[] r) {			
 			for(Result res: r){
 				if(res.isEmpty()) failed.incrementAndGet();
