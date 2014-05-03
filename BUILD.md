@@ -5,7 +5,7 @@
 
 * Copy `settings.xml.template` to `settings.xml` and edit parameters to match your folders
 
-* Use `mvn --settings setting.xml`, it will point to settings.xml to set important properties (native code in lz4 depends on it)
+* Use `mvn --settings settings.xml`, it will point to settings.xml to set important properties (native code in lz4 depends on it)
 - run the following command to build and install
 ```
 $ mvn --settings settings.xml clean install -DskipTests
