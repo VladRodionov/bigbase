@@ -1,8 +1,5 @@
 ## BigBase source build instructions:
 
-* You need to manually add one jar to your `.m2/repository` folder because it is not available on any public maven repo.
-- go to `./lib` folder and run  `*-tests.install.sh` script
-
 * Copy `settings.xml.template` to `settings.xml` and edit parameters to match your folders
 
 * Use `mvn --settings settings.xml`, it will point to settings.xml to set important properties (native code in lz4 depends on it)
