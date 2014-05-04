@@ -37,7 +37,7 @@ Go to [HBase](http://hbase.apache.org) for download and installation instruction
 
 There are two major new features in BigBase, which are either missing in HBase or have sub-optimal implementation: 
 off heap RowCache and off heap BlockCache. RowCache is designed after original BigTable's scan cache. It caches
-hot rows data and does it in off heap memory. Read ROWCACHE.txt for more information. Another major new feature is 
+hot rows data and does it in off heap memory. Read [Row-Cache](https://github.com/VladRodionov/bigbase/wiki/BigBase-Row-Cache) for more information. Another major new feature is 
 off heap BlockCache. HBase 0.96 onwards has already off heap block cache (which is called bucket cache), but BigBase's 
 block cache implementation is far superior in several aspects: scalability, latency and performance, besides this, 
 off heap BlockCache is supported in BigBase 0.94 onwards and 'vanilla' HBase does not support off heap block cache in 0.94.x.
