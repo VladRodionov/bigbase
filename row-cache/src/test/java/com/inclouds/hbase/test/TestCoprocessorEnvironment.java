@@ -86,4 +86,12 @@ public HTableInterface getTable(TableName tableName, ExecutorService service)
 	return null;
 }
 
+/**
+ * Added for 0.98 - compatibility
+ */
+public ClassLoader getClassLoader() {
+	// TODO Auto-generated method stub
+	return null;
+}
+
 }

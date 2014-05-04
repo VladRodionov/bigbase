@@ -321,7 +321,8 @@ public class TestHFileBlockIndexerMVCC extends TestCase{
       for(int i=0; i < N; i++){
         byte[] row = getRow(i);
         array[i] = new KeyValue(row, CF, CQ, Integer.toString(i).getBytes());
-        array[i].setMemstoreTS(memstoreTS);
+        // 0.98 - compatibility
+        /*array[i].setMemstoreTS(memstoreTS);*/
       }
       // Now we need to sort array
       Arrays.sort(array, KeyValue.COMPARATOR);

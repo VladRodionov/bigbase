@@ -370,18 +370,21 @@ public class PerfTest {
   public static void cacheRegion(HRegion region) throws IOException
   {
     LOG.info("Cache region starts");
-    Scan scan = new Scan();
-    scan.setStartRow(region.getStartKey());
-    scan.setStopRow(region.getEndKey());
-    scan.setCacheBlocks(true);
-    Store store = region.getStore(CF);
-    StoreScanner scanner = new StoreScanner(store,  store.getScanInfo(), scan,  null);
-    long start = System.currentTimeMillis();
     int total = 0;
-    List<Cell> result = new ArrayList<Cell>();
-    while(scanner.next(result)){
-      total++; result.clear();
-    }
+    long start = System.currentTimeMillis();
+// TODO: 0.98 - compatibility    
+//    Scan scan = new Scan();
+//    scan.setStartRow(region.getStartKey());
+//    scan.setStopRow(region.getEndKey());
+//    scan.setCacheBlocks(true);
+//    Store store = region.getStore(CF);
+//    StoreScanner scanner = new StoreScanner(store,  store.getScanInfo(), scan,  null);
+//    long start = System.currentTimeMillis();
+//    int total = 0;
+//    List<Cell> result = new ArrayList<Cell>();
+//    while(scanner.next(result)){
+//      total++; result.clear();
+//    }
     
     LOG.info("Cache region finished. Found "+total +" in "+(System.currentTimeMillis() - start)+"ms");
     //LOG.info("cache hits ="+cache.getStats().getHitCount()+" miss="+cache.getStats().getMissCount());

@@ -401,7 +401,7 @@ public class CacheConfig {
           StringUtils.humanReadableInt(cacheSize));
 
       globalBlockCache = new LruBlockCache(cacheSize,
-          StoreFile.DEFAULT_BLOCKSIZE_SMALL, conf);
+          /*StoreFile.DEFAULT_BLOCKSIZE_SMALL*/ 64*1024, conf);
     } 
     return globalBlockCache;
   }

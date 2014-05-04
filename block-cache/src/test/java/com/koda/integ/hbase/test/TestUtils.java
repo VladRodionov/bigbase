@@ -90,9 +90,10 @@ public class TestUtils {
     bb.put(kv.getBuffer(), kv.getOffset(), kv.getLength());
     // TODO tags
     if (includeMvccVersion) {
-      int numMvccVersionBytes = WritableUtils.getVIntSize(kv.getMemstoreTS());
+      // TODO: 0.98 - comatibility	
+      int numMvccVersionBytes = WritableUtils.getVIntSize(0/*kv.getMemstoreTS()*/);
       bb.limit(bb.limit() + numMvccVersionBytes);
-      ByteBufferUtils.writeVLong(bb, kv.getMemstoreTS());
+      ByteBufferUtils.writeVLong(bb, 0/*kv.getMemstoreTS()*/);
     }
   }
 }
