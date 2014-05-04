@@ -42,6 +42,9 @@ off heap BlockCache. HBase 0.96 onwards has already off heap block cache (which 
 block cache implementation is far superior in several aspects: scalability, latency and performance, besides this, 
 off heap BlockCache is supported in BigBase 0.94 onwards and 'vanilla' HBase does not support off heap block cache in 0.94.x.
     
+### User group
+
+https://groups.google.com/forum/#!forum/bigbase-user
 
 ### License
 
