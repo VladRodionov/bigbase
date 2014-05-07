@@ -1010,7 +1010,7 @@ public class RowCache {
       byte[] tableName = tableDesc.getName();
       byte[] row = put.getRow();
 
-      Set<byte[]> families = put.getFamilyMap().keySet();
+      Set<byte[]> families = put.getFamilyCellMap().keySet();
 
       // Invalidate list of family keys
 
