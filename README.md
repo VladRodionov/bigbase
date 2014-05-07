@@ -46,6 +46,10 @@ off heap BlockCache is supported in BigBase 0.94 onwards and 'vanilla' HBase doe
 
 https://groups.google.com/forum/#!forum/bigbase-user
 
+### HBaseCon 2014 presentation
+
+http://www.slideshare.net/bigbase/hbase-extreme-makeover
+
 ### License
 
 BigBase is licensed under [Affero GPL 3](http://www.gnu.org/licenses/agpl-3.0.html).
