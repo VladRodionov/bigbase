@@ -68,6 +68,7 @@
     </dependencyManagement>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <hbase.version>0.98.1-hadoop2</hbase.version>
     </properties>
 </project>
 
