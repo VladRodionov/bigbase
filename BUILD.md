@@ -15,4 +15,4 @@ $ mvn --settings settings.xml eclipse:eclipse -DskipTests -Dhbase.version=0.96.2
 
 > **Note:** All init tests are passed when run in Eclipse one by one, do not run them from maven.
 
-To build HBase 0.98.x - compatible BigBase, set hbase.version to 0.98.1-hadoop2
+To build HBase 0.98.x - compatible BigBase, set `hbase.version=0.98.1-hadoop2`
