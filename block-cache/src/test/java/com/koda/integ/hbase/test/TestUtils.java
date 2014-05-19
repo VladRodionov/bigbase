@@ -74,9 +74,14 @@ public class TestUtils {
 	 * @throws IOException Signals that an I/O exception has occurred.
 	 */
 	public static void delete(File f) throws IOException {
-		  if (f.isDirectory()) {
-		    for (File c : f.listFiles())
-		      delete(c);
+		
+		if (f.isDirectory()) {
+			File[] files = f.listFiles();
+			if(files != null){
+				for (File c : files){
+					delete(c);
+				}
+			}
 		  } else{
 			  f.delete();
 		  }

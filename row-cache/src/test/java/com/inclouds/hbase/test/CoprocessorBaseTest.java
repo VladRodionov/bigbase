@@ -36,7 +36,7 @@ import org.apache.hadoop.hbase.coprocessor.CoprocessorHost;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import com.inclouds.hbase.rowcache.RowCache;
-import com.inclouds.hbase.rowcache.RowCacheCoprocessor;
+import com.inclouds.hbase.rowcache.RowCacheCoprocessor;;
 
 
 // TODO: Auto-generated Javadoc

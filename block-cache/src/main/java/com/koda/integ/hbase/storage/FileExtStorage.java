@@ -19,6 +19,7 @@ package com.koda.integ.hbase.storage;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
@@ -95,6 +96,8 @@ public class FileExtStorage implements ExtStorage {
 	public final static String FILE_STORAGE_SC_RATIO = "offheap.blockcache.file.storage.fifoRatio";
 	
 	public final static String FILE_STORAGE_PAGE_CACHE = "offheap.blockcache.file.storage.pagecache";
+	
+	public final static String DATA_FILE_NAME_PREFIX = "data-";
 	
 	/** The Constant DEFAULT_BUFFER_SIZE. */
 	private final static int DEFAULT_BUFFER_SIZE = 8*1024*1024;
@@ -542,7 +545,7 @@ public class FileExtStorage implements ExtStorage {
 	 * @return the file path
 	 */
 	public String getFilePath(int id) {
-		String path = fileStorageBaseDir + File.separator + "data-"+format(id, 10);
+		String path = fileStorageBaseDir + File.separator + DATA_FILE_NAME_PREFIX+format(id, 10);
 		return path;
 	}
 	
@@ -632,7 +635,14 @@ public class FileExtStorage implements ExtStorage {
 		
 		LOG.info("[FileExtStorage] initializing storage : "+fileStorageBaseDir);
 		File storageDir = new File(fileStorageBaseDir);
-		String[] files = storageDir.list();
+		String[] files = storageDir.list( new FilenameFilter(){
+
+			@Override
+			public boolean accept(File f, String name) {
+				return name.startsWith(DATA_FILE_NAME_PREFIX);
+			}
+			
+		});
 		if(files == null) {
 			LOG.info("Creating "+fileStorageBaseDir);
 			if( storageDir.mkdirs() == false){
@@ -1234,6 +1244,14 @@ public class FileExtStorage implements ExtStorage {
 	 */
 	public long getCurrentStorageSize() {
 		return currentStorageSize.get();
+//		long currentLength = 0;
+//		try{
+//			
+//			currentLength = (currentForWrite != null )?currentForWrite.length(): 0;
+//		}catch(IOException e){
+//			//LOG.warn(e);
+//		}
+//		return currentStorageSize.get() + currentLength;
 	}
 
 	/**
@@ -1279,7 +1297,15 @@ public class FileExtStorage implements ExtStorage {
 
   @Override
   public long size() {
-    return getCurrentStorageSize();
+    long size = getCurrentStorageSize();
+    long currentLength = 0;
+	try{		
+		currentLength = (currentForWrite != null )?currentForWrite.length(): 0;
+	}catch(IOException e){
+		//LOG.warn(e);
+	}
+	return size + currentLength;
+    
   }
 
   @Override

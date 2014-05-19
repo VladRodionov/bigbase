@@ -26,7 +26,7 @@ import org.apache.hadoop.hbase.util.ClassSize;
 /**
  * The Class BlockCacheKey.
  */
-public class BlockCacheKey implements  java.io.Serializable {
+public class BlockCacheKeyTest implements  java.io.Serializable {
   
   /** The Constant serialVersionUID. */
   private static final long serialVersionUID = 1L;
@@ -48,7 +48,7 @@ public class BlockCacheKey implements  java.io.Serializable {
    * @param encoding the encoding
    * @param blockType the block type
    */
-  public BlockCacheKey(String file, long offset, DataBlockEncoding encoding,
+  public BlockCacheKeyTest(String file, long offset, DataBlockEncoding encoding,
       BlockType blockType) {
     this.hfileName = file;
     this.offset = offset;
@@ -65,7 +65,7 @@ public class BlockCacheKey implements  java.io.Serializable {
    * @param file The name of the HFile this block belongs to.
    * @param offset Offset of the block into the file
    */
-  public BlockCacheKey(String file, long offset) {
+  public BlockCacheKeyTest(String file, long offset) {
     this(file, offset, DataBlockEncoding.NONE, null);
   }
 
@@ -83,8 +83,8 @@ public class BlockCacheKey implements  java.io.Serializable {
    */
   @Override
   public boolean equals(Object o) {
-    if (o instanceof BlockCacheKey) {
-      BlockCacheKey k = (BlockCacheKey) o;
+    if (o instanceof BlockCacheKeyTest) {
+      BlockCacheKeyTest k = (BlockCacheKeyTest) o;
       return offset == k.offset
           && (hfileName == null ? k.hfileName == null : hfileName
               .equals(k.hfileName));

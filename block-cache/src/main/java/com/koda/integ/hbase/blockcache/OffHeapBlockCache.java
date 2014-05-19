@@ -24,6 +24,7 @@ import java.lang.management.MemoryUsage;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.logging.Log;
@@ -215,6 +216,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
   /** External cache stats */
   private final CacheStats extStats;
   
+  
   /** Maximum allowable size of cache (block put if size > max, evict). */
   private long blockCacheMaxSize;
   
@@ -263,6 +265,8 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
   
   
   private boolean testMode = false;
+  
+  private AtomicLong fatalExternalReads = new AtomicLong(0);
   /**
    * Instantiates a new off heap block cache.
    *
@@ -580,6 +584,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
         cache.logStats();
         cache.logStatsOffHeap();
         cache.logStatsOnHeap();
+        cache.logStatsExternal();
       }
     }
   }
@@ -653,6 +658,29 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
         "evicted=" + onHeapCache.getEvictedCount() );
 
   }  
+  
+  protected void logStatsExternal() {
+	    if( storage == null) return;
+	    // Log size
+	    long totalSize = storage.size();
+	    long maxSize = storage.getMaxStorageSize() ;
+	    long freeSize = maxSize - totalSize;   
+	    
+	    OnHeapBlockCache.LOG.info("[EXTERNAL] : " +
+	        "total=" + StringUtils.byteDesc(totalSize) + ", " +        
+	        "free=" + StringUtils.byteDesc(freeSize) + ", " +
+	        "max=" + StringUtils.byteDesc(maxSize) + ", " +
+	         
+	        "accesses=" + extStats.getRequestCount() + ", " +
+	        "hits=" + extStats.getHitCount() + ", " +
+	        "hitRatio=" + (extStats.getRequestCount()>0 ? StringUtils.formatPercent(extStats.getHitRatio(), 2): "0.00") + "%, "+
+	        "cachingAccesses=" + extStats.getRequestCachingCount() + ", " +
+	        "cachingHits=" + extStats.getHitCachingCount() + ", " +
+	        "cachingHitsRatio=" +
+	        (extStats.getRequestCachingCount() > 0 ?StringUtils.formatPercent(extStats.getHitCachingRatio(), 2): "0.00") + "%, "); 
+	       // "\nFATAL READS="+fatalExternalReads.get());
+
+	  }  
   /**
    * HeapSize implementation - returns zero if auxCache is disabled.
    *
@@ -665,7 +693,6 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
  public long heapSize() {
     return onHeapCache == null? 0: onHeapCache.heapSize();
   }
-
  
 
   /**
@@ -678,7 +705,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
       boolean contains = false;
     try {
       String blockName = cacheKey.toString();
-      
+      //*DEBUG*/LOG.info(Thread.currentThread().getName()+": cache block "+blockName);
       contains = offHeapCache.contains(blockName);
       if ( contains) {
         // TODO - what does it mean? Can we ignore this?
@@ -773,7 +800,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
   }
   
   /**
-   * Gets the ext storage cache.
+   * Gets the external storage cache.
    *
    * @return the ext storage cache
    */
@@ -798,7 +825,12 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
     // We use 16 - byte hash for external storage cache  
     byte[] hashed = Utils.hash128(blockName);  
     StorageHandle handle = (StorageHandle) extStorageCache.get(hashed);
-    if( handle == null ) return null;
+    if( handle == null ) {
+    	//*DEBUG*/ LOG.warn("ext store cache: not found "+blockName);
+    	return null;
+    }
+	//*DEBUG*/ LOG.info("ext store cache: found "+blockName);
+
     ByteBuffer buffer = extStorageCache.getLocalBufferWithAddress().getBuffer();
     SerDe serde = extStorageCache.getSerDe();
     Codec codec = extStorageCache.getCompressionCodec();
@@ -825,7 +857,10 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
     
     return obj;
     
-    } catch (NativeMemoryException e) {
+    } catch (Throwable e) {
+      /*DEBUG*/LOG.error("[readExternalWithCodec]" + blockName);
+      fatalExternalReads.incrementAndGet();
+      /*DEBUG*/LOG.error("REQUESTS="+extStats.getRequestCount()+" HITS="+extStats.getHitCount());
       throw new IOException(e);
     }
     
@@ -877,9 +912,11 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
 
       if( bb == null){
           // Try to load from external cache
+    	  
          bb = readExternalWithCodec(blockName);
          
          if(bb == null){
+           //*DEBUG*/ LOG.warn("EXT: not found "+blockName);	 
            if(repeat == false) extStats.miss(caching);
          } else{
            extStats.hit(caching);

@@ -91,6 +91,8 @@ public interface ExtStorage {
 	public long size();
 	
 	public void shutdown(boolean isPersistent) throws IOException;
+	
+	public long getMaxStorageSize();
 					
 	
 }

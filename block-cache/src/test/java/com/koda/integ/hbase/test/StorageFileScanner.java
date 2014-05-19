@@ -55,7 +55,6 @@ public class StorageFileScanner {
 	private static void verifyFile(String[] args) throws IOException{
 		
 		String fileName = args[0];
-
 		
 		RandomAccessFile file = new RandomAccessFile(fileName,"r");
 		LOG.info("File: "+fileName+" verification starts. File Size="+file.length());

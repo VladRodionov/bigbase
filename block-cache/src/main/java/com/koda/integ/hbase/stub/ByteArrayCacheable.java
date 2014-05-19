@@ -85,7 +85,7 @@ public class ByteArrayCacheable implements Cacheable {
 	 */
 	@Override
 	public BlockType getBlockType() {
-		return null;
+		return BlockType.DATA;
 	}
 
 	/* (non-Javadoc)
