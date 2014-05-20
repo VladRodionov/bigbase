@@ -621,7 +621,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
     long totalSize = offHeapCache.getTotalAllocatedMemorySize();
     long maxSize = offHeapCache.getMemoryLimit();
     long freeSize = maxSize - totalSize;
-    OffHeapBlockCache.LOG.info("[OFF-HEAP] : " +
+    OffHeapBlockCache.LOG.info("[L2-BLOCK-CACHE-RAM(OFFHEAP)] : " +
         "total=" + StringUtils.byteDesc(totalSize) + ", " +        
         "free=" + StringUtils.byteDesc(freeSize) + ", " +
         "max=" + StringUtils.byteDesc(maxSize) + ", " +
@@ -643,7 +643,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
 	    long totalSize = extStorageCache.getTotalAllocatedMemorySize();
 	    long maxSize = extStorageCache.getMemoryLimit();
 	    long freeSize = maxSize - totalSize;
-	    OffHeapBlockCache.LOG.info("[EXT-REF] : " +
+	    OffHeapBlockCache.LOG.info("[L3-BLOCK-CACHE-RAM] : " +
 	        "total=" + StringUtils.byteDesc(totalSize) + ", " +        
 	        "free=" + StringUtils.byteDesc(freeSize) + ", " +
 	        "max=" + StringUtils.byteDesc(maxSize) + ", " +
@@ -667,7 +667,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
     long maxSize = onHeapCache.getMaxSize();
     long freeSize = maxSize - totalSize;   
     
-    OnHeapBlockCache.LOG.info("[ON-HEAP] : " +
+    OnHeapBlockCache.LOG.info("[L2-BLOCK-CACHE-RAM(HEAP)] : " +
         "total=" + StringUtils.byteDesc(totalSize) + ", " +        
         "free=" + StringUtils.byteDesc(freeSize) + ", " +
         "max=" + StringUtils.byteDesc(maxSize) + ", " +
@@ -691,7 +691,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
 	    long maxSize = storage.getMaxStorageSize() ;
 	    long freeSize = maxSize - totalSize;   
 	    
-	    OnHeapBlockCache.LOG.info("[EXTERNAL] : " +
+	    OnHeapBlockCache.LOG.info("[L3-BLOCK-CACHE-DISK] : " +
 	        "total=" + StringUtils.byteDesc(totalSize) + ", " +        
 	        "free=" + StringUtils.byteDesc(freeSize) + ", " +
 	        "max=" + StringUtils.byteDesc(maxSize) + ", " +

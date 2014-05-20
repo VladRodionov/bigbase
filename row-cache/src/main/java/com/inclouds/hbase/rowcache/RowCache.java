@@ -417,7 +417,7 @@ public class RowCache {
             long hits = rowCache.getHitCount();
             if (requests != lastRequests) {
               // Log only if new data
-              LOG.info("Row cache stats: accesses="
+              LOG.info("[L1-ROW-CACHE]: accesses="
                   + requests
                   + " hits="
                   + hits
