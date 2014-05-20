@@ -872,7 +872,12 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
     StorageHandle newHandle = storage.getData(handle, buffer);
     if(buffer.position() > 0) buffer.flip();
     int size = buffer.getInt();
-    if(size == 0) return null;
+    if(size == 0) {
+    	// BIGBASE-45
+    	// Remove reference from reference cache
+    	extStorageCache.remove(hashed);
+    	return null;
+    }
     // Skip key
     int keySize = buffer.getInt();
     buffer.position(8 + keySize);
