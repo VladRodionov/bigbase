@@ -875,6 +875,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
     if(size == 0) {
     	// BIGBASE-45
     	// Remove reference from reference cache
+    	// reference is in L3-RAM cache but no object in L3-DISK cache was found
     	extStorageCache.remove(hashed);
     	return null;
     }
