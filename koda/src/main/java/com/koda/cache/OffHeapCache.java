@@ -2278,7 +2278,6 @@ public class OffHeapCache {
 		double baseCompRatio = ( mCodec == null)? 1.0: mCodec.getAvgCompressionRatio();
 		double recompressedRatio = storageOptimizerList.get(0).getEstimatedRecompressedRatio();
 		double optimizerCompRatio = storageOptimizerList.get(0).getEstimatedCompressionRatio();
-		//LOG.info("baseCompRatio="+baseCompRatio +" recompressedRatio="+recompressedRatio +" optimizerCompRatio="+optimizerCompRatio);
 		return (1- recompressedRatio) * baseCompRatio + recompressedRatio * optimizerCompRatio;
 		
 	}

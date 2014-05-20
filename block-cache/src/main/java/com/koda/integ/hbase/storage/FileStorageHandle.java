@@ -126,7 +126,7 @@ public class FileStorageHandle implements StorageHandle {
 		Utils.toBytes(bytes, 0, id);
 		Utils.toBytes(bytes, 4, offset);
 		Utils.toBytes(bytes, 8, size);
-		return null;
+		return bytes;
 	}
 
 	/* (non-Javadoc)

@@ -1313,4 +1313,9 @@ public class FileExtStorage implements ExtStorage {
     // TODO Auto-generated method stub
     
   }
+
+  @Override
+  public StorageHandle newStorageHandle() {
+	  return new FileStorageHandle();
+  }
 }

@@ -157,7 +157,7 @@ public class OffHeapBlockCachePerfTest {
 		
 	    config.setBoolean(OffHeapBlockCache.BLOCK_CACHE_OVERFLOW_TO_EXT_STORAGE_ENABLED, true);
 	    config.setBoolean(OffHeapBlockCache.BLOCK_CACHE_TEST_MODE, true);
-	    config.setLong(OffHeapBlockCache.BLOCK_CACHE_EXT_STORAGE_MEMORY_SIZE, (long)(0.05 * sRAMCacheSize));
+	    config.setLong(OffHeapBlockCache.BLOCK_CACHE_EXT_STORAGE_MEMORY_SIZE, (long)(0.1 * sRAMCacheSize));
 	    config.set(OffHeapBlockCache.BLOCK_CACHE_COMPRESSION, "LZ4");
 	    
 		// Set L3 config 

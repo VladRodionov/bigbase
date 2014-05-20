@@ -39,11 +39,9 @@ import org.apache.hadoop.hbase.io.hfile.BlockType;
 import org.apache.hadoop.hbase.io.hfile.CacheStats;
 import org.apache.hadoop.hbase.io.hfile.Cacheable;
 import org.apache.hadoop.hbase.io.hfile.CacheableDeserializer;
-import org.apache.hadoop.hbase.io.hfile.HFile;
 import org.apache.hadoop.util.StringUtils;
 
 import com.koda.KodaException;
-import com.koda.NativeMemoryException;
 import com.koda.cache.CacheManager;
 import com.koda.cache.CacheScanner;
 import com.koda.cache.OffHeapCache;
@@ -213,8 +211,11 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
   /** Off-heap cache stats */
   private final CacheStats offHeapStats;  
 
-  /** External cache stats */
+  /** External cache stats -L3 */
   private final CacheStats extStats;
+  
+  /** External references cache stats in RAM*/
+  private final CacheStats extRefStats;
   
   
   /** Maximum allowable size of cache (block put if size > max, evict). */
@@ -403,7 +404,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
         onHeapCache = new OnHeapBlockCache(onHeapCacheSize, blockSize, conf);
         LOG.info("Created fast on-heap cache. Size="+onHeapCacheSize);
       } else{
-        LOG.warn("Conficting configuration options. On-heap cache is disabled.");
+        LOG.warn("Conflicting configuration options. On-heap cache is disabled.");
       }
     }
     
@@ -411,6 +412,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
     this.onHeapStats = new CacheStats();
     this.offHeapStats = new CacheStats();
     this.extStats = new CacheStats();
+    this.extRefStats = new CacheStats();
     
     EvictionListener listener = new EvictionListener(){
 
@@ -585,6 +587,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
         cache.logStatsOffHeap();
         cache.logStatsOnHeap();
         cache.logStatsExternal();
+        cache.logStatsOffHeapExt();
       }
     }
   }
@@ -615,7 +618,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
 
   protected void logStatsOffHeap() {
     // Log size
-    long totalSize = offHeapCache.getAllocatedMemorySize();
+    long totalSize = offHeapCache.getTotalAllocatedMemorySize();
     long maxSize = offHeapCache.getMemoryLimit();
     long freeSize = maxSize - totalSize;
     OffHeapBlockCache.LOG.info("[OFF-HEAP] : " +
@@ -633,7 +636,29 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
 
         "evicted=" + offHeapCache.getEvictedCount() );
 
-  }  
+  } 
+  
+  protected void logStatsOffHeapExt() {
+	    // Log size
+	    long totalSize = extStorageCache.getTotalAllocatedMemorySize();
+	    long maxSize = extStorageCache.getMemoryLimit();
+	    long freeSize = maxSize - totalSize;
+	    OffHeapBlockCache.LOG.info("[EXT-REF] : " +
+	        "total=" + StringUtils.byteDesc(totalSize) + ", " +        
+	        "free=" + StringUtils.byteDesc(freeSize) + ", " +
+	        "max=" + StringUtils.byteDesc(maxSize) + ", " +
+	        "refs=" + extStorageCache.size() +", " +
+	        "accesses=" + extRefStats.getRequestCount() + ", " +
+	        "hits=" + extRefStats.getHitCount() + ", " +
+	        "hitRatio=" + (extRefStats.getRequestCount()>0 ? StringUtils.formatPercent(extRefStats.getHitRatio(), 2): "0.00") + "%, "+
+	        "cachingAccesses=" + extRefStats.getRequestCachingCount() + ", " +
+	        "cachingHits=" + extRefStats.getHitCachingCount() + ", " +
+	        "cachingHitsRatio=" +
+	        (extRefStats.getRequestCachingCount() > 0 ?StringUtils.formatPercent(offHeapStats.getHitCachingRatio(), 2): "0.00") + "%, " +
+
+	        "evicted=" + extRefStats.getEvictedCount() );
+
+	  }  
   
   protected void logStatsOnHeap() {
     if(onHeapEnabled() == false) return;
@@ -695,6 +720,8 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
   }
  
 
+ 
+ 
   /**
    * Add block to cache.
    * @param cacheKey The block's cache key.
@@ -705,7 +732,6 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
       boolean contains = false;
     try {
       String blockName = cacheKey.toString();
-      //*DEBUG*/LOG.info(Thread.currentThread().getName()+": cache block "+blockName);
       contains = offHeapCache.contains(blockName);
       if ( contains) {
         // TODO - what does it mean? Can we ignore this?
@@ -718,8 +744,8 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
         // Cache on-heap only non-data blocks
         onHeapCache.cacheBlock(cacheKey, buf, inMemory);
       }
-      
-      if( isTestMode() && extStorageCache != null){
+      // TODO: Remove test mode
+      if( isTestMode() && isExternalStorageEnabled()){
         // FIXME This code disables storage in non-test mode???
         byte[] hashed = Utils.hash128(blockName);
         if( extStorageCache.contains(hashed) == false){
@@ -792,7 +818,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
 
     try {
       // WE USE byte array as a key
-      extStorageCache.put(hashed, handle);
+      extStorageCache.put(hashed, handle.toBytes());
     } catch (Exception e) {
       throw new IOException(e);
     }
@@ -817,19 +843,25 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
    * @throws IOException Signals that an I/O exception has occurred.
    */
   @SuppressWarnings("unused")
-  private Cacheable readExternalWithCodec(String blockName) throws IOException
+  private Cacheable readExternalWithCodec(String blockName, boolean repeat, boolean caching) throws IOException
   {
     if(overflowExtEnabled == false) return null;
     // Check if we have  already this block in external storage cache
     try {
     // We use 16 - byte hash for external storage cache  
     byte[] hashed = Utils.hash128(blockName);  
-    StorageHandle handle = (StorageHandle) extStorageCache.get(hashed);
-    if( handle == null ) {
-    	//*DEBUG*/ LOG.warn("ext store cache: not found "+blockName);
+    StorageHandle handle = storage.newStorageHandle();
+    
+    byte[] data = (byte[])extStorageCache.get(hashed);
+
+    if( data == null ) {
+    	if(repeat == false) extRefStats.miss(caching);
     	return null;
+    } else{
+    	extRefStats.hit(caching);
     }
-	//*DEBUG*/ LOG.info("ext store cache: found "+blockName);
+    
+    handle.fromBytes(data);
 
     ByteBuffer buffer = extStorageCache.getLocalBufferWithAddress().getBuffer();
     SerDe serde = extStorageCache.getSerDe();
@@ -903,9 +935,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
           offHeapStats.hit(caching);
         }
       } else{
-        // TODO : touch 
-        // we need touch dataBlockCache
-        //dataBlockCache.
+        // We need touch dataBlockCache
         offHeapCache.touch(blockName);
         onHeapStats.hit(caching);
       }
@@ -913,16 +943,15 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
       if( bb == null){
           // Try to load from external cache
     	  
-         bb = readExternalWithCodec(blockName);
+         bb = readExternalWithCodec(blockName, repeat, caching);
          
          if(bb == null){
-           //*DEBUG*/ LOG.warn("EXT: not found "+blockName);	 
            if(repeat == false) extStats.miss(caching);
          } else{
            extStats.hit(caching);
          }
          
-      } else if( isTestMode() == false && extStorageCache != null){
+      } else if( isTestMode() == true && isExternalStorageEnabled()){
         byte[] hashed = Utils.hash128(blockName);
         if(extStorageCache.contains(hashed) == false){      
           // FIXME: double check 'contains'
@@ -941,11 +970,17 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
       return bb;
     }catch(Exception e)
     {
-      e.printStackTrace();
+      LOG.error(e);
       throw new RuntimeException(e);
     }
   }
 
+  
+  private final boolean isExternalStorageEnabled()
+  {
+	  return extStorageCache != null;
+  }
+  
   /**
    * Evict block from cache.
    * @param cacheKey Block to evict
@@ -1063,6 +1098,17 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
   {
     return extStats;
   }
+  
+  /**
+   *  Gets the external ref cache stats
+   * @return Stats
+   */
+  
+  public CacheStats getExtRefStats()
+  {
+	  return extRefStats;
+  }
+  
   
   public OffHeapCache getOffHeapCache()
   {
