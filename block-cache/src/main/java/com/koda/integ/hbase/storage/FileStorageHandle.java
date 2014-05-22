@@ -17,6 +17,8 @@
 *******************************************************************************/
 package com.koda.integ.hbase.storage;
 
+import java.util.Random;
+
 import com.koda.integ.hbase.util.Utils;
 
 // TODO: Auto-generated Javadoc
@@ -26,13 +28,13 @@ import com.koda.integ.hbase.util.Utils;
 public class FileStorageHandle implements StorageHandle {
 
 	/** The id. */
-	private int id;
+	protected int id;
 	
 	/** The offset. */
-	private int offset;
+	protected int offset;
 	
 	/** The size. */
-	private int size;
+	protected int size;
 	
 	/**
 	 * Gets the id.
@@ -145,5 +147,25 @@ public class FileStorageHandle implements StorageHandle {
 		StringBuffer sbuf = new StringBuffer();
 		sbuf.append("id="+id+" offset="+offset+" size="+size);
 		return sbuf.toString();
+	}
+	
+	public static void main(String[] args){
+		Random r = new Random();
+		int failed =0;
+		int N = 1000000;
+		System.out.println("Started");
+		for(int i=0; i < N; i++){
+			FileStorageHandle fsh = new FileStorageHandle(r.nextInt(1000), r.nextInt(2000000000), r.nextInt(1000)+8192);
+			byte[] arr = fsh.toBytes();
+			FileStorageHandle other = new FileStorageHandle();
+			other.fromBytes(arr);
+			if(fsh.equals(other) == false){
+				failed++;
+				//System.err.println("Failed: "+fsh);
+			}
+			
+		}
+		System.out.println("Finished failed =" + failed+" of "+ N);
+		
 	}
 }

@@ -95,6 +95,8 @@ public interface ExtStorage {
 	public long getMaxStorageSize();
 	
 	public StorageHandle newStorageHandle();
+	
+	public boolean isValid(StorageHandle h);
 					
 	
 }

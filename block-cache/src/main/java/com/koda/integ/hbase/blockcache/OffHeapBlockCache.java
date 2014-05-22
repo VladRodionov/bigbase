@@ -183,7 +183,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
   static final Log LOG = LogFactory.getLog(OffHeapBlockCache.class);
 
   /** Default Configuration Parameters. */
-  static final int EXT_STORAGE_REF_SIZE = 50; 
+  static final int EXT_STORAGE_REF_SIZE = 84; 
   
   /** Young generation. */
   static final float DEFAULT_YOUNG_FACTOR = 0.5f;
@@ -345,6 +345,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
         extStorageCfg.setCodecType(codec);
         extStorageCfg.setEvictionPolicy(EvictionPolicy.LRU.toString());
         extStorageCfg.setSerDeBufferSize(4096);// small
+        extStorageCfg.setPreevictionListSize(40);
         // calculate bucket number
         // 50 is estimate of a record size
         int buckets =  (extCacheMaxSize / EXT_STORAGE_REF_SIZE) > 
@@ -368,7 +369,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
         }        
         
         // This will initiate the load of stored cache data
-        // if persistance is enabled
+        // if persistence is enabled
         extStorageCache = manager.getCache(extStorageCfg, null);
         // Initialize external storage
         storage = ExtStorageManager.getInstance().getStorage(conf, extStorageCache);
@@ -498,9 +499,11 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
    */
   private void adjustMaxMemory() {
     if(overflowExtEnabled == true && extCacheMaxSize == 0){
-      blockCacheMaxSize = (long) (0.95 * blockCacheMaxSize);
-      // By default we set back 5% to external ref cache 
-      extCacheMaxSize =  (long) (0.05 * blockCacheMaxSize);
+        // By default we set back 5% to external ref cache 
+        extCacheMaxSize =  (long) (0.05 * blockCacheMaxSize);
+    	blockCacheMaxSize = (long) (0.95 * blockCacheMaxSize);
+    } else if(overflowExtEnabled == true){
+    	blockCacheMaxSize -= extCacheMaxSize;
     }
     LOG.info("Block cache max size ="+blockCacheMaxSize+" external cache support (in RAM)="+extCacheMaxSize);
   }
@@ -599,7 +602,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
     // Log size
     long totalSize = getCurrentSize();
     long freeSize = getMaxSize() - totalSize;
-    OffHeapBlockCache.LOG.info("Block cache stats: " +
+    OffHeapBlockCache.LOG.info("[BLOCK CACHE]: " +
         "total=" + StringUtils.byteDesc(totalSize) + ", " +        
         "free=" + StringUtils.byteDesc(freeSize) + ", " +
         "max=" + StringUtils.byteDesc(getMaxSize()) + ", " +
@@ -621,7 +624,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
     long totalSize = offHeapCache.getTotalAllocatedMemorySize();
     long maxSize = offHeapCache.getMemoryLimit();
     long freeSize = maxSize - totalSize;
-    OffHeapBlockCache.LOG.info("[L2-BLOCK-CACHE-RAM(OFFHEAP)] : " +
+    OffHeapBlockCache.LOG.info("[L2-OFFHEAP] : " +
         "total=" + StringUtils.byteDesc(totalSize) + ", " +        
         "free=" + StringUtils.byteDesc(freeSize) + ", " +
         "max=" + StringUtils.byteDesc(maxSize) + ", " +
@@ -640,10 +643,10 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
   
   protected void logStatsOffHeapExt() {
 	    // Log size
-	    long totalSize = extStorageCache.getTotalAllocatedMemorySize();
+	    long totalSize = extStorageCache.getAllocatedMemorySize();
 	    long maxSize = extStorageCache.getMemoryLimit();
 	    long freeSize = maxSize - totalSize;
-	    OffHeapBlockCache.LOG.info("[L3-BLOCK-CACHE-RAM] : " +
+	    OffHeapBlockCache.LOG.info("[L3-RAM]     : " +
 	        "total=" + StringUtils.byteDesc(totalSize) + ", " +        
 	        "free=" + StringUtils.byteDesc(freeSize) + ", " +
 	        "max=" + StringUtils.byteDesc(maxSize) + ", " +
@@ -656,7 +659,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
 	        "cachingHitsRatio=" +
 	        (extRefStats.getRequestCachingCount() > 0 ?StringUtils.formatPercent(offHeapStats.getHitCachingRatio(), 2): "0.00") + "%, " +
 
-	        "evicted=" + extRefStats.getEvictedCount() );
+	        "evicted=" + extStorageCache.getEvictedCount() );
 
 	  }  
   
@@ -667,7 +670,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
     long maxSize = onHeapCache.getMaxSize();
     long freeSize = maxSize - totalSize;   
     
-    OnHeapBlockCache.LOG.info("[L2-BLOCK-CACHE-RAM(HEAP)] : " +
+    OnHeapBlockCache.LOG.info("[L2-HEAP]    : " +
         "total=" + StringUtils.byteDesc(totalSize) + ", " +        
         "free=" + StringUtils.byteDesc(freeSize) + ", " +
         "max=" + StringUtils.byteDesc(maxSize) + ", " +
@@ -691,7 +694,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
 	    long maxSize = storage.getMaxStorageSize() ;
 	    long freeSize = maxSize - totalSize;   
 	    
-	    OnHeapBlockCache.LOG.info("[L3-BLOCK-CACHE-DISK] : " +
+	    OnHeapBlockCache.LOG.info("[L3-DISK]    : " +
 	        "total=" + StringUtils.byteDesc(totalSize) + ", " +        
 	        "free=" + StringUtils.byteDesc(freeSize) + ", " +
 	        "max=" + StringUtils.byteDesc(maxSize) + ", " +
@@ -748,8 +751,9 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
       if( isTestMode() && isExternalStorageEnabled()){
         // FIXME This code disables storage in non-test mode???
         byte[] hashed = Utils.hash128(blockName);
+        // TODO : do we really need to check this?
         if( extStorageCache.contains(hashed) == false){
-          // Store external if we found object in a block cache and not in ext cache
+          // Store external if we found object in a block cache and not in external cache
           // ONLY IN TEST MODE
           storeExternalWithCodec(blockName, buf, false);
         }
@@ -850,17 +854,16 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
     try {
     // We use 16 - byte hash for external storage cache  
     byte[] hashed = Utils.hash128(blockName);  
-    StorageHandle handle = storage.newStorageHandle();
     
+    StorageHandle handle = storage.newStorageHandle();    
     byte[] data = (byte[])extStorageCache.get(hashed);
-
     if( data == null ) {
     	if(repeat == false) extRefStats.miss(caching);
     	return null;
     } else{
     	extRefStats.hit(caching);
     }
-    
+    // Initialize handle 
     handle.fromBytes(data);
 
     ByteBuffer buffer = extStorageCache.getLocalBufferWithAddress().getBuffer();
@@ -876,7 +879,10 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
     	// BIGBASE-45
     	// Remove reference from reference cache
     	// reference is in L3-RAM cache but no object in L3-DISK cache was found
-    	extStorageCache.remove(hashed);
+    	// remove only if handle is invalid
+    	if(storage.isValid(handle) == false){
+    		extStorageCache.remove(hashed);
+    	}
     	return null;
     }
     // Skip key
@@ -890,15 +896,13 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
     offHeapCache.put(blockName, obj);
  
     if( newHandle.equals(handle) == false){
-      extStorageCache.put(hashed, newHandle);
+      extStorageCache.put(hashed, newHandle.toBytes());
     }
     
     return obj;
     
     } catch (Throwable e) {
-      /*DEBUG*/LOG.error("[readExternalWithCodec]" + blockName);
       fatalExternalReads.incrementAndGet();
-      /*DEBUG*/LOG.error("REQUESTS="+extStats.getRequestCount()+" HITS="+extStats.getHitCount());
       throw new IOException(e);
     }
     
@@ -961,8 +965,11 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
         byte[] hashed = Utils.hash128(blockName);
         if(extStorageCache.contains(hashed) == false){      
           // FIXME: double check 'contains'
-          // Store external if we found object in a block cache and not in ext cache
+          // Store external if we found object in a block cache and not in external (L3) cache
           storeExternalWithCodec(blockName, bb, false);
+        } else{
+        	// Touch L3-RAM cache
+        	extStorageCache.touch(hashed);
         }
       }
       if(bb == null) {

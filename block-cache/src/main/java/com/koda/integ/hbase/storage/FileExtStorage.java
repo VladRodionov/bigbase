@@ -772,10 +772,6 @@ public class FileExtStorage implements ExtStorage {
 			return fsh;
 		}
 		
-		//ReentrantReadWriteLock lock = locks[fsh.getId() % locks.length];
-		
-		//lock.writeLock().lock();
-		
 		RandomAccessFile file = getFile(fsh.getId());//openFile(fsh.getId(), "r");
 		
 		boolean needSecondChance = needSecondChance(fsh.getId());
@@ -806,7 +802,6 @@ public class FileExtStorage implements ExtStorage {
 						total += c;
 					}
 				} catch (IOException e) {
-					//LOG.error(e);
 					// return not found
 					if(fsh.getId() > minId.get()){
 						e.printStackTrace();
@@ -822,23 +817,10 @@ public class FileExtStorage implements ExtStorage {
 			
 		} finally {
 			if(file != null){
-				// return file back
-				
-			  
-			  
+			  // return file back
 			  // PUT we need for old version
 			  putFile(fsh.getId(), file);
-				
-				
-				
-//				try {
-//					file.close();
-//				} catch (IOException e) {
-//					// TODO Auto-generated catch block
-//					//e.printStackTrace();
-//				}
 			}
-			//lock.writeLock().unlock();
 		}
 
 	}
@@ -1244,14 +1226,7 @@ public class FileExtStorage implements ExtStorage {
 	 */
 	public long getCurrentStorageSize() {
 		return currentStorageSize.get();
-//		long currentLength = 0;
-//		try{
-//			
-//			currentLength = (currentForWrite != null )?currentForWrite.length(): 0;
-//		}catch(IOException e){
-//			//LOG.warn(e);
-//		}
-//		return currentStorageSize.get() + currentLength;
+
 	}
 
 	/**
@@ -1302,7 +1277,7 @@ public class FileExtStorage implements ExtStorage {
 	try{		
 		currentLength = (currentForWrite != null )?currentForWrite.length(): 0;
 	}catch(IOException e){
-		//LOG.warn(e);
+		// Swallow the exception
 	}
 	return size + currentLength;
     
@@ -1317,5 +1292,12 @@ public class FileExtStorage implements ExtStorage {
   @Override
   public StorageHandle newStorageHandle() {
 	  return new FileStorageHandle();
+  }
+
+  @Override
+  public boolean isValid(StorageHandle h) {
+	  if( h == null ) return false;
+	  FileStorageHandle fh = (FileStorageHandle) h;
+	  return fh.id >= minId.get() && fh.id <= maxId.get();
   }
 }

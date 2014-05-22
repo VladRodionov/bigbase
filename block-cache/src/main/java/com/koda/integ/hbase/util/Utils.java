@@ -70,7 +70,7 @@ public class Utils {
 	 */
 	public static byte[] toBytes(byte[] b, int offset, long val) {
 
-		for (int i = offset + 7; i > 0; i--) {
+		for (int i = offset + 7; i > offset; i--) {
 			b[i] = (byte) val;
 			val >>>= 8;
 		}
@@ -88,7 +88,7 @@ public class Utils {
 	 */
 	public static byte[] toBytes(byte[] b, int offset, int val) {
 
-		for (int i = offset + 3; i > 0; i--) {
+		for (int i = offset + 3; i > offset; i--) {
 			b[i] = (byte) val;
 			val >>>= 8;
 		}
@@ -158,5 +158,17 @@ public class Utils {
 	  {
 	     buf.putInt(arr[i]); 
 	  }	  
+	}
+	
+	public static void main(String[] args){
+		
+		int[] arr = new int[]{-10000000, -1000000, -100000, -10000, -1000, -100, -10, 0, 
+				10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000};
+		
+		for(int i = 0; i < arr.length; i++){
+			byte[] b = new byte[4];
+			System.out.println(" "+ arr[i] + " "+toInt(toBytes(b, 0, arr[i]), 0));
+		}
+		
 	}
 }
