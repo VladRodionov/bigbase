@@ -54,7 +54,7 @@ http://www.slideshare.net/bigbase/hbase-extreme-makeover
 
 BigBase is licensed under [Affero GPL 3](http://www.gnu.org/licenses/agpl-3.0.html).
 
-(***) This feature has not been tested in 1.0.0 and will be available in the next 1.1.0 release.
+(***) This feature has not been tested in 1.0.0-RC0 and will be available in the next 1.0.0-RC1 release.
  
 
  
