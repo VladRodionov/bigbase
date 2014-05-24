@@ -73,6 +73,8 @@ public class OffHeapBlockCachePerfTest {
 	
 	private final static String MAX_FILE_SIZE = "-fs";
 	
+	private final static String DISK_META_RATIO = "-dm";
+	
 
 
 	/** The N. */
@@ -104,6 +106,8 @@ public class OffHeapBlockCachePerfTest {
 	
 	/** Number of client threads. */
 	private static int sClientThreads = 2; // by default
+	
+	private static float sDiskMetaRatio = 0.05f;
 
 	/** The s puts. */
 	private static AtomicLong sPuts = new AtomicLong(0);
@@ -157,7 +161,7 @@ public class OffHeapBlockCachePerfTest {
 		
 	    config.setBoolean(OffHeapBlockCache.BLOCK_CACHE_OVERFLOW_TO_EXT_STORAGE_ENABLED, true);
 	    config.setBoolean(OffHeapBlockCache.BLOCK_CACHE_TEST_MODE, true);
-	    config.setLong(OffHeapBlockCache.BLOCK_CACHE_EXT_STORAGE_MEMORY_SIZE, (long)(0.1 * sRAMCacheSize));
+	    config.setLong(OffHeapBlockCache.BLOCK_CACHE_EXT_STORAGE_MEMORY_SIZE, (long)( sDiskMetaRatio * sRAMCacheSize));
 	    config.set(OffHeapBlockCache.BLOCK_CACHE_COMPRESSION, "LZ4");
 	    
 		// Set L3 config 
@@ -400,6 +404,8 @@ public class OffHeapBlockCachePerfTest {
 				baseDir = args[++i];
 			} else if (args[i].equals(MAX_FILE_SIZE)) {
 				sMaxFileSize = Long.parseLong(args[++i]) ;
+			} else if (args[i].equals(DISK_META_RATIO)) {
+				sDiskMetaRatio = Float.parseFloat(args[++i]) ;
 			} 
 
 			i++;

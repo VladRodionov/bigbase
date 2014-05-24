@@ -279,7 +279,7 @@ public class OffHeapCache {
 	/** Cache name. */
 	private String mCacheName; 
 	
-	/** The m cache namespace. */
+	/** The cache's name-space. */
 	private String mCacheNamespace;
 	
 	/** Default expiration timeout in seconds. */
@@ -302,20 +302,20 @@ public class OffHeapCache {
 							new ThreadLocal<ByteBufferWithAddress>();
 	
 	
-	/** The m serializer. */
+	/** The serializer. */
 	protected SerDe mSerializer;
 	
-	/** The m cache config. */
+	/** The cache configuration. */
 	protected CacheConfiguration mCacheConfig;
 	
 	/** Compression stuff. */
 	
 	protected boolean mCompressionEnabled = false; 
 	
-	/** The m type. */
+	/** The compression codec type. */
 	protected CodecType mType = CodecType.NONE;	
 	
-	/** The m codec. */
+	/** The compression codec. */
 	protected Codec mCodec;
 	
 	/** Persistent back store. */
@@ -748,21 +748,7 @@ public class OffHeapCache {
 	{
 		return mHistogram.get();
 	}	
-	
-//	public static long getLastPutAddress()
-//	{
-//		return sLastPutAddress.get();
-//	}
-	
-	/**
-	 * Set the last put address (thread-local storage)
-	 * @param address
-	 */
-//	public static void setLastPutAddress(long address)
-//	{
-//		sLastPutAddress.set(address);
-//	}
-	
+		
 	
 	/**
 	 * Get Max memory allowed for all caches.

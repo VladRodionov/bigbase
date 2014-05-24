@@ -410,10 +410,11 @@ public class SerDe {
 		if(codec == null ){
 		  // ADD support for dynamic codecs
 		  // write 0 - say we do not use compression
-		  buf.putInt(0);
+		  //buf.putInt(0);
 		  // put 1 more byte
 		  buf.put((byte)0);
-			write(buf, value); return;
+		  write(buf, value); 
+		  return;
 		}
 		
 		ByteBuffer temp = getTempBuffer();
@@ -424,7 +425,7 @@ public class SerDe {
 		int pos = temp.position();    
 		temp.flip();
 		if(pos < ct){
-			buf.putInt(0); // NO-COMPRESSION (short value)
+			//buf.putInt(0); // NO-COMPRESSION (short value)
 			buf.put((byte)0);
 			buf.put(temp);
 		} else{
@@ -433,9 +434,10 @@ public class SerDe {
 			buf.position(bpos+5);
 			int size = codec.compress(temp, buf);
 			// write size of compressed data
-			buf.putInt(bpos, size);
+			buf.put(bpos, (byte) codec.getType().id());
+			buf.putInt(bpos+1, size);
 			// write codec type
-			buf.put(bpos + 4, (byte) codec.getType().id());
+			
 			//TODO this is Snappy codec thing
 			buf.position(buf.limit());
 
@@ -455,9 +457,10 @@ public class SerDe {
 	public void writeCompressedWithClass(ByteBuffer buf, Object value, Codec codec, Class<?> clz) throws IOException {
 		
 		if(codec == null ){
-		  buf.putInt(0);
+		  //buf.putInt(0);
 		  buf.put((byte) 0);
-			writeWithClass(buf, value, clz); return;
+			writeWithClass(buf, value, clz); 
+			return;
 		}
 		
 		ByteBuffer temp = getTempBuffer();
@@ -468,7 +471,7 @@ public class SerDe {
 		int pos = temp.position();
 		temp.flip();
 		if(pos < ct){
-			buf.putInt(0); // NO-COMPRESSION (short value)
+			//buf.putInt(0); // NO-COMPRESSION (short value)
 			buf.put((byte) 0);
 			buf.put(temp);
 		} else{
@@ -477,8 +480,9 @@ public class SerDe {
 			buf.position(bpos+5);
 			int size = codec.compress(temp, buf);
 			// write size of compresed data
-			buf.putInt(bpos, size);
-			buf.put(bpos + 4, (byte) codec.getType().id());
+			buf.put(bpos , (byte) codec.getType().id());
+			buf.putInt(bpos+1, size);
+			
 			//TODO this is Snappy codec thing
 			buf.position(buf.limit());
 
@@ -651,114 +655,51 @@ public class SerDe {
 	 * @throws IOException Signals that an I/O exception has occurred.
 	 */
 
-//	public Object readCompressed(ByteBuffer buf, Codec codec) throws IOException {
-//		
-//		if(codec == null) {
-//		  // skip 5
-//		  int pos = buf.position();
-//		  buf.position(pos + 5);
-//		  return read(buf);
-//		}
-//		
-//		int compLen = buf.getInt();
-//    // skip 1
-//    int codecId = buf.get();
-//    
-//		if(compLen > 0){
-//			ByteBuffer temp = getTempBuffer();
-//			// TODO: size of compressed data in limit()
-//			buf.limit(buf.position() + compLen);			
-//			int size = codec.decompress(buf, temp);
-//
-//			return read(temp);
-//		} else if(compLen == 0){
-//      return read(buf);
-//		} else{
-//			throw new IOException("Corrupted stream: compression size ="+compLen);
-//		}
-//
-//	}
-
 	
 	 public Object readCompressed(ByteBuffer buf) throws IOException {
-	    	    
-	    int compLen = buf.getInt();
+	    // FIXME: 	    
+	    //int compLen = buf.getInt();
 	    // skip 1
 	    int codecId = buf.get();
 
-	    if(compLen > 0){
-        Codec codec = CodecFactory.getCodec(codecId);       
-	      //LOG.info(codec.getType());
-	      ByteBuffer temp = getTempBuffer();
-	      // TODO: size of compressed data in limit()
-	      buf.limit(buf.position() + compLen);      
-	      @SuppressWarnings("unused")
-        int size = codec.decompress(buf, temp);
-	      return read(temp);
-	    } else if(compLen == 0){
-	      return read(buf);
+	    if(codecId > 0){
+	    	int compLen = buf.getInt();
+	    	Codec codec = CodecFactory.getCodec(codecId);       
+	    	ByteBuffer temp = getTempBuffer();
+	    	// TODO: size of compressed data in limit()
+	    	buf.limit(buf.position() + compLen);      
+	    	@SuppressWarnings("unused")
+            int size = codec.decompress(buf, temp);
+	        return read(temp);
+	    } else if(codecId == 0){
+	        return read(buf);
 	    } else{
-	      throw new IOException("Corrupted stream: compression size ="+compLen);
+	        throw new IOException("Corrupted stream: unknown codec ="+codecId);
 	    }
 
 	  }
 	
-	/**
-	 * Read value from buffer (compression is enabled id codec != null).
-	 *
-	 * @param buf the buf
-	 * @param codec the codec
-	 * @param clz the clz
-	 * @return the object
-	 * @throws IOException Signals that an I/O exception has occurred.
-	 */
 
-//	public Object readCompressedWithClass(ByteBuffer buf, Codec codec, Class<?> clz) throws IOException {
-//		
-//		if(codec == null) {
-//      // skip 5
-//      int pos = buf.position();
-//      buf.position(pos + 5);
-//		  return readWithClass(buf, clz);
-//		}
-//		
-//		int compLen = buf.getInt();
-//		int codecId = buf.get();
-//		if(compLen > 0){
-//			ByteBuffer temp = getTempBuffer();
-//			// TODO: size of compressed data in limit()
-//			buf.limit(buf.position() + compLen);
-//			
-//			codec.decompress(buf, temp);
-//			temp.position(0);
-//			return readWithClass(temp, clz);
-//		} else if(compLen == 0){
-//			return readWithClass(buf, clz);
-//		} else{
-//			throw new IOException("Corrupted stream: compression size ="+compLen);
-//		}
-//
-//	}
 	
 	 public Object readCompressedWithClass(ByteBuffer buf, Class<?> clz) throws IOException {
 	    	    
-	    int compLen = buf.getInt();
+		// int compLen = buf.getInt();
 	    int codecId = buf.get();
-	    if(compLen > 0){
-	      
-        Codec codec = CodecFactory.getCodec(codecId);       
+	    if(codecId > 0){
+	    	int compLen = buf.getInt();
+            Codec codec = CodecFactory.getCodec(codecId);       
 
-        ByteBuffer temp = getTempBuffer();
-        // TODO: size of compressed data in limit()
-        buf.limit(buf.position() + compLen);
+            ByteBuffer temp = getTempBuffer();
+            // TODO: size of compressed data in limit()
+            buf.limit(buf.position() + compLen);
 	      
-        codec.decompress(buf, temp);
-	      temp.position(0);
-	      return readWithClass(temp, clz);
-	    } else if(compLen == 0){
+            codec.decompress(buf, temp);
+            temp.position(0);
+            return readWithClass(temp, clz);
+	    } else if(codecId == 0){
 	      return readWithClass(buf, clz);
 	    } else{
-	      throw new IOException("Corrupted stream: compression size ="+compLen);
+	      throw new IOException("Corrupted stream: unknown codec ="+codecId);
 	    }
 
 	  }
@@ -771,40 +712,17 @@ public class SerDe {
 	 * @return the object
 	 * @throws IOException Signals that an I/O exception has occurred.
 	 */
-//	public Object readCompressedWithValue(ByteBuffer buf, Codec codec, Object value) throws IOException {
-//		if(codec == null) {
-//      // skip 5
-//      int pos = buf.position();
-//      buf.position(pos + 5);
-//		  return readWithValue(buf, value);
-//		}
-//		
-//		int compLen = buf.getInt();
-//		int codecId = buf.get();
-//		
-//		if(compLen > 0){
-//			ByteBuffer temp = getTempBuffer();
-//			// TODO: size of compressed data in limit()
-//			buf.limit(buf.position() + compLen);
-//			codec.decompress(buf, temp);
-//			temp.position(0);
-//			return readWithValue(temp, value);
-//		} else if(compLen == 0){// No compression
-//			return readWithValue(buf, value);
-//		} else{
-//			throw new IOException("Corrupted stream: compression size ="+compLen);
-//		}
-//
-//	}
+
 	
 	 public Object readCompressedWithValue(ByteBuffer buf,  Object value) throws IOException {
 
 	    
-	    int compLen = buf.getInt();
+	    //int compLen = buf.getInt();
 	    int codecId = buf.get();
 	    
-	    if(compLen > 0){
-	      
+	    if(codecId > 0){
+		    int compLen = buf.getInt();
+
 	      Codec codec = CodecFactory.getCodec(codecId);	      
 	      ByteBuffer temp = getTempBuffer();
 	      // TODO: size of compressed data in limit()
@@ -812,10 +730,10 @@ public class SerDe {
 	      codec.decompress(buf, temp);
 	      temp.position(0);
 	      return readWithValue(temp, value);
-	    } else if(compLen == 0){// No compression
+	    } else if(codecId == 0){// No compression
 	      return readWithValue(buf, value);
 	    } else{
-	      throw new IOException("Corrupted stream: compression size ="+compLen);
+	      throw new IOException("Corrupted stream: unknown codec ="+codecId);
 	    }
 
 	  }
@@ -831,37 +749,16 @@ public class SerDe {
 	 * @return the object
 	 * @throws IOException Signals that an I/O exception has occurred.
 	 */
-//	public Object readCompressedWithValueAndClass(ByteBuffer buf, Codec codec, Object value, Class<?> clz) throws IOException {
-//		if(codec == null) {
-//      // skip 5
-//      int pos = buf.position();
-//      buf.position(pos + 5);
-//		  return readWithValueAndClass(buf, value, clz);
-//		}
-//		
-//		int compLen = buf.getInt();
-//		int codecId = buf.get();
-//		if(compLen > 0){
-//			ByteBuffer temp = getTempBuffer();
-//			// TODO: size of compressed data in limit()
-//			buf.limit(buf.position() + compLen);
-//			codec.decompress(buf, temp);
-//			temp.position(0);
-//			return readWithValueAndClass(temp, value, clz);
-//		} else if(compLen == 0){// No compression
-//			return readWithValueAndClass(buf, value, clz);
-//		} else{
-//			throw new IOException("Corrupted stream: compression size ="+compLen);
-//		}
-//
-//	}
+
 	
 	 public Object readCompressedWithValueAndClass(ByteBuffer buf,  Object value, Class<?> clz) throws IOException {
 
 	    
-	    int compLen = buf.getInt();
+	    //int compLen = buf.getInt();
 	    int codecId = buf.get();
-	    if(compLen > 0){
+	    if(codecId > 0){
+		    int compLen = buf.getInt();
+
 	      Codec codec = CodecFactory.getCodec(codecId);       
 
 	      ByteBuffer temp = getTempBuffer();
@@ -870,10 +767,10 @@ public class SerDe {
 	      codec.decompress(buf, temp);
 	      temp.position(0);
 	      return readWithValueAndClass(temp, value, clz);
-	    } else if(compLen == 0){// No compression
+	    } else if(codecId == 0){// No compression
 	      return readWithValueAndClass(buf, value, clz);
 	    } else{
-	      throw new IOException("Corrupted stream: compression size ="+compLen);
+	      throw new IOException("Corrupted stream: unknown codec ="+codecId);
 	    }
 
 	  }

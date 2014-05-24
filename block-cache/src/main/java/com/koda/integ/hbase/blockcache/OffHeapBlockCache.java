@@ -342,10 +342,11 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
         CacheConfiguration extStorageCfg  = new CacheConfiguration();
         extStorageCfg.setCacheName("extStorageCache");
         extStorageCfg.setMaxMemory(extCacheMaxSize);
-        extStorageCfg.setCodecType(codec);
         extStorageCfg.setEvictionPolicy(EvictionPolicy.LRU.toString());
         extStorageCfg.setSerDeBufferSize(4096);// small
         extStorageCfg.setPreevictionListSize(40);
+        extStorageCfg.setKeyClassName(byte[].class.getName());
+        extStorageCfg.setValueClassName(byte[].class.getName());
         // calculate bucket number
         // 50 is estimate of a record size
         int buckets =  (extCacheMaxSize / EXT_STORAGE_REF_SIZE) > 
@@ -432,10 +433,11 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
     CacheableSerializer serde = new CacheableSerializer();    
     offHeapCache.getSerDe().registerSerializer(serde);
     
-    if( extStorageCache != null){
-      StorageHandleSerializer serde2 = new StorageHandleSerializer();
-      extStorageCache.getSerDe().registerSerializer(serde2);
-    }
+//    if( extStorageCache != null){
+//      //StorageHandleSerializer serde2 = new StorageHandleSerializer();
+//      //  SmallByteArraySerializer serde2 = new SmallByteArraySerializer();
+//      //	extStorageCache.getSerDe().registerSerializer(serde2);
+//    }
     // Start statistics thread
     statThread = new StatisticsThread(this);
     statThread.start();
@@ -646,7 +648,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
 	    long totalSize = extStorageCache.getAllocatedMemorySize();
 	    long maxSize = extStorageCache.getMemoryLimit();
 	    long freeSize = maxSize - totalSize;
-	    OffHeapBlockCache.LOG.info("[L3-RAM]     : " +
+	    OffHeapBlockCache.LOG.info("[L3-OFFHEAP] : " +
 	        "total=" + StringUtils.byteDesc(totalSize) + ", " +        
 	        "free=" + StringUtils.byteDesc(freeSize) + ", " +
 	        "max=" + StringUtils.byteDesc(maxSize) + ", " +

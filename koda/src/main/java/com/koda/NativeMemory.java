@@ -51,22 +51,12 @@ public class NativeMemory {
 	/** The Constant LOG. */
 	private final static Logger LOG = Logger.getLogger(NativeMemory.class);	
 	
-	
-	/** The global write lock. */
-	//static AtomicBoolean globalWriteLock = new AtomicBoolean(false);
-	
-	/** The use spin lock. */
-	//static boolean useSpinLock = true;
-	
-	/** The global lock. */
-	//static SpinLock globalLock = new SpinLock();
-	
 	/** Default Platform serializer. */
 	private final static long[] slabSizes = new long[]{
-	  32,
-	  40,
-	  48,
-	  56,
+	  //32,
+	  //40,
+	  //48,
+	  64,
 	  72,
 	  88,
 	  104,
@@ -191,6 +181,10 @@ public class NativeMemory {
 	  5823827456L,
 	  6697401576L,
 	  7702011816L,
+	  7702011816L,
+	  7702011816L,
+	  7702011816L
+
 	  
 	};
 	
@@ -208,7 +202,6 @@ public class NativeMemory {
 	  // up to 200KB we have 1.2
 	  // between 200K and 1M - 1.25
 	  // after 1M - 1.15 again (not because we are  but to make sure we)
-	  //LOG.info("Set custom memory allocator slab sizes");
 	  // FIXME: uncomment
 	  malloc.setSlabSizes(slabSizes);	  
 	}
