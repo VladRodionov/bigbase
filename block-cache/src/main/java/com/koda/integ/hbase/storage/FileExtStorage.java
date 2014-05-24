@@ -19,6 +19,7 @@ package com.koda.integ.hbase.storage;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
@@ -95,6 +96,8 @@ public class FileExtStorage implements ExtStorage {
 	public final static String FILE_STORAGE_SC_RATIO = "offheap.blockcache.file.storage.fifoRatio";
 	
 	public final static String FILE_STORAGE_PAGE_CACHE = "offheap.blockcache.file.storage.pagecache";
+	
+	public final static String DATA_FILE_NAME_PREFIX = "data-";
 	
 	/** The Constant DEFAULT_BUFFER_SIZE. */
 	private final static int DEFAULT_BUFFER_SIZE = 8*1024*1024;
@@ -542,7 +545,7 @@ public class FileExtStorage implements ExtStorage {
 	 * @return the file path
 	 */
 	public String getFilePath(int id) {
-		String path = fileStorageBaseDir + File.separator + "data-"+format(id, 10);
+		String path = fileStorageBaseDir + File.separator + DATA_FILE_NAME_PREFIX+format(id, 10);
 		return path;
 	}
 	
@@ -632,7 +635,14 @@ public class FileExtStorage implements ExtStorage {
 		
 		LOG.info("[FileExtStorage] initializing storage : "+fileStorageBaseDir);
 		File storageDir = new File(fileStorageBaseDir);
-		String[] files = storageDir.list();
+		String[] files = storageDir.list( new FilenameFilter(){
+
+			@Override
+			public boolean accept(File f, String name) {
+				return name.startsWith(DATA_FILE_NAME_PREFIX);
+			}
+			
+		});
 		if(files == null) {
 			LOG.info("Creating "+fileStorageBaseDir);
 			if( storageDir.mkdirs() == false){
@@ -762,10 +772,6 @@ public class FileExtStorage implements ExtStorage {
 			return fsh;
 		}
 		
-		//ReentrantReadWriteLock lock = locks[fsh.getId() % locks.length];
-		
-		//lock.writeLock().lock();
-		
 		RandomAccessFile file = getFile(fsh.getId());//openFile(fsh.getId(), "r");
 		
 		boolean needSecondChance = needSecondChance(fsh.getId());
@@ -796,7 +802,6 @@ public class FileExtStorage implements ExtStorage {
 						total += c;
 					}
 				} catch (IOException e) {
-					//LOG.error(e);
 					// return not found
 					if(fsh.getId() > minId.get()){
 						e.printStackTrace();
@@ -812,23 +817,10 @@ public class FileExtStorage implements ExtStorage {
 			
 		} finally {
 			if(file != null){
-				// return file back
-				
-			  
-			  
+			  // return file back
 			  // PUT we need for old version
 			  putFile(fsh.getId(), file);
-				
-				
-				
-//				try {
-//					file.close();
-//				} catch (IOException e) {
-//					// TODO Auto-generated catch block
-//					//e.printStackTrace();
-//				}
 			}
-			//lock.writeLock().unlock();
 		}
 
 	}
@@ -1234,6 +1226,7 @@ public class FileExtStorage implements ExtStorage {
 	 */
 	public long getCurrentStorageSize() {
 		return currentStorageSize.get();
+
 	}
 
 	/**
@@ -1279,12 +1272,32 @@ public class FileExtStorage implements ExtStorage {
 
   @Override
   public long size() {
-    return getCurrentStorageSize();
+    long size = getCurrentStorageSize();
+    long currentLength = 0;
+	try{		
+		currentLength = (currentForWrite != null )?currentForWrite.length(): 0;
+	}catch(IOException e){
+		// Swallow the exception
+	}
+	return size + currentLength;
+    
   }
 
   @Override
   public void shutdown(boolean isPersistent) throws IOException {
     // TODO Auto-generated method stub
     
+  }
+
+  @Override
+  public StorageHandle newStorageHandle() {
+	  return new FileStorageHandle();
+  }
+
+  @Override
+  public boolean isValid(StorageHandle h) {
+	  if( h == null ) return false;
+	  FileStorageHandle fh = (FileStorageHandle) h;
+	  return fh.id >= minId.get() && fh.id <= maxId.get();
   }
 }

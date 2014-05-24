@@ -30,29 +30,25 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.io.encoding.DataBlockEncoding;
+import org.apache.hadoop.hbase.io.hfile.BlockCacheKey;
+import org.apache.hadoop.hbase.io.hfile.BlockType;
+import org.apache.hadoop.hbase.io.hfile.Cacheable;
 import org.apache.log4j.Logger;
 
 import com.koda.NativeMemory;
 import com.koda.NativeMemoryException;
-import com.koda.cache.CacheManager;
-import com.koda.cache.OffHeapCache;
-import com.koda.cache.eviction.EvictionAlgo;
-import com.koda.compression.CodecType;
-import com.koda.config.CacheConfiguration;
 import com.koda.integ.hbase.blockcache.OffHeapBlockCache;
-import com.koda.integ.hbase.storage.ExtStorageManager;
 import com.koda.integ.hbase.storage.FileExtStorage;
-import com.koda.integ.hbase.storage.FileStorageHandle;
 import com.koda.integ.hbase.storage.StorageRecycler;
-import com.koda.integ.hbase.util.StorageHandleSerializer;
+import com.koda.integ.hbase.stub.ByteArrayCacheable;
 import com.koda.util.Utils;
 
 // TODO: Auto-generated Javadoc
 /**
  * The Class OffHeapHashMapPerfTest.
  */
-public class FileStoragePerfTest {
+public class OffHeapBlockCachePerfTest {
 
 
 
@@ -65,10 +61,20 @@ public class FileStoragePerfTest {
 
 
 	/** The Constant DURATION. */
-	private final static String DURATION = "-d";
+	private final static String DURATION = "-du";
 	
 	private final static String VALUE_SIZE ="-v";
-
+	
+	private final static String RAM_LIMIT = "-m";
+	
+	private final static String DISK_LIMIT = "-d";
+	
+	private final static String CACHE_DIR = "-c";
+	
+	private final static String MAX_FILE_SIZE = "-fs";
+	
+	private final static String DISK_META_RATIO = "-dm";
+	
 
 
 	/** The N. */
@@ -76,15 +82,16 @@ public class FileStoragePerfTest {
 
 	/** The Constant LOG. */
 
-	private final static Logger LOG = Logger.getLogger(FileStoragePerfTest.class);
+	private final static Logger LOG = Logger.getLogger(OffHeapBlockCachePerfTest.class);
 
 	/** The base dir. */
 	static String baseDir = "/cache";
 	
+	static long sMaxFileSize = 2000000000L; 
+	
 	/** The Koda cache instance, which keeps storage references. */
-	private static OffHeapCache sCache;
+	private static OffHeapBlockCache sCache;
 
-	/** The s storage. */
 	private static FileExtStorage sStorage;
 	
 	/** The s test time. */
@@ -96,9 +103,11 @@ public class FileStoragePerfTest {
 	/** The s interval. */
 	private static long sInterval = 5000;
 
-
+	
 	/** Number of client threads. */
 	private static int sClientThreads = 2; // by default
+	
+	private static float sDiskMetaRatio = 0.05f;
 
 	/** The s puts. */
 	private static AtomicLong sPuts = new AtomicLong(0);
@@ -122,10 +131,16 @@ public class FileStoragePerfTest {
 		
 		
 	};
+	
 	/**
-	 *  120GB
+	 *  120GB - disk cache
 	 */
 	private static long sDiskCacheSize = ((long) 120) * 1024 * 1024 * 1024;
+	/**
+	 * 
+	 *  24GB RAM cache
+	 */
+	private static long sRAMCacheSize = ((long) 24) * 1024 * 1024 * 1024;
 	
 	/**
 	 * 32K
@@ -140,39 +155,39 @@ public class FileStoragePerfTest {
 	protected static void setUp() throws Exception {
 
 		Configuration config = new Configuration();
+		
+		// Set L2 config
+		config.set(OffHeapBlockCache.BLOCK_CACHE_MEMORY_SIZE, Long.toString(sRAMCacheSize));
+		
+	    config.setBoolean(OffHeapBlockCache.BLOCK_CACHE_OVERFLOW_TO_EXT_STORAGE_ENABLED, true);
+	    config.setBoolean(OffHeapBlockCache.BLOCK_CACHE_TEST_MODE, true);
+	    config.setLong(OffHeapBlockCache.BLOCK_CACHE_EXT_STORAGE_MEMORY_SIZE, (long)( sDiskMetaRatio * sRAMCacheSize));
+	    config.set(OffHeapBlockCache.BLOCK_CACHE_COMPRESSION, "LZ4");
+	    
+		// Set L3 config 
 		config.set(FileExtStorage.FILE_STORAGE_BASE_DIR, baseDir);
 		// 120G
 		config.set(FileExtStorage.FILE_STORAGE_MAX_SIZE, Long.toString(sDiskCacheSize));
 		config.set(OffHeapBlockCache.BLOCK_CACHE_EXT_STORAGE_IMPL, "com.koda.integ.hbase.storage.FileExtStorage");
 		// 2G file size limit
-		config.set(FileExtStorage.FILE_STORAGE_FILE_SIZE_LIMIT,"2000000000");
+		config.setLong(FileExtStorage.FILE_STORAGE_FILE_SIZE_LIMIT, sMaxFileSize);
 		// 8MB buffer size 
-		config.set(FileExtStorage.FILE_STORAGE_BUFFER_SIZE,Integer.toString(8*1024*1024));
+		config.setInt(FileExtStorage.FILE_STORAGE_BUFFER_SIZE, 8*1024*1024);
 		
-		config.set(FileExtStorage.FILE_STORAGE_NUM_BUFFERS, "2");
+		config.setInt(FileExtStorage.FILE_STORAGE_NUM_BUFFERS, 2);
 		
-		config.set(StorageRecycler.STORAGE_RATIO_LOW_CONF, "0.93");
+		config.setFloat(StorageRecycler.STORAGE_RATIO_LOW_CONF, 0.98f);
 		
-		config.set(StorageRecycler.STORAGE_RATIO_HIGH_CONF, "0.98");
+		config.setFloat(StorageRecycler.STORAGE_RATIO_HIGH_CONF, 0.99f);
 		
-		config.set(FileExtStorage.FILE_STORAGE_PAGE_CACHE, Boolean.toString(false));
+		//config.setBoolean(FileExtStorage.FILE_STORAGE_PAGE_CACHE, false);
 		
 		checkDir();
-				
-		CacheManager manager = CacheManager.getInstance();	
-		CacheConfiguration cfg = new CacheConfiguration();
-		// Max memory = 1G
-		cfg.setMaxMemory(1024L*1024L*1024L);
-		cfg.setEvictionPolicy("LRU");
-		// Bucket number 
-		cfg.setBucketNumber(10000000);
-		cfg.setCodecType(CodecType.LZ4);
-		sCache = manager.createCache(cfg);
-		// SerDe
-		StorageHandleSerializer serde2 = new StorageHandleSerializer();
-		sCache.getSerDe().registerSerializer(serde2);
-		sStorage = (FileExtStorage) ExtStorageManager.getInstance().getStorage(config, sCache);
 		
+		// Create block cache		
+		sCache = new OffHeapBlockCache(config);
+		
+		sStorage = (FileExtStorage) sCache.getExternalStorage();
 
 	}
 	
@@ -351,15 +366,8 @@ public class FileStoragePerfTest {
 		waitToFinish(threads);
 
 		long t2 = System.currentTimeMillis();
-		//		
-		LOG.info("Total time=" + (t2 - t1) + " ms");
 
-			EvictionAlgo algo = sCache.getEvictionAlgo();
-			LOG.info("Eviction stats:");
-			LOG
-					.info("  number of attempts ="
-							+ algo.getTotalEvictionAttempts());
-			LOG.info("  number of evicted  =" + algo.getTotalEvictedItems());
+		LOG.info("Total time=" + (t2 - t1) + " ms");
 
 		LOG.info("Estimated RPS="
 				+ ((double) (sPuts.get() + sGets.get()) * 1000) / (t2 - t1));
@@ -382,17 +390,23 @@ public class FileStoragePerfTest {
 
 			if (args[i].equals(THREADS)) {
 				sClientThreads = Integer.parseInt(args[++i]);
-			} /* else if (args[i].equals(BUCKETS)) {
-				N = Integer.parseInt(args[++i]);
-			} else if (args[i].equals(MAXMEMORY)) {
-				sMemoryLimit = Long.parseLong(args[++i]);
-			} */else if (args[i].equals(VALUE_SIZE)) {
+			} else if (args[i].equals(RAM_LIMIT)) {
+				sRAMCacheSize = Long.parseLong(args[++i]);
+			} else if (args[i].equals(DISK_LIMIT)) {
+				sDiskCacheSize = Long.parseLong(args[++i]);
+			} else if (args[i].equals(VALUE_SIZE)) {
 				sAvgValueSize = Integer.parseInt(args[++i]);
 			} else if (args[i].equals(WRITE_RATIO)) {
 				sWriteRatio = Float.parseFloat(args[++i]);
 			} else if (args[i].equals(DURATION)) {
 				sTestTime = Long.parseLong(args[++i]) * 1000;
-			}
+			} else if (args[i].equals(CACHE_DIR)) {
+				baseDir = args[++i];
+			} else if (args[i].equals(MAX_FILE_SIZE)) {
+				sMaxFileSize = Long.parseLong(args[++i]) ;
+			} else if (args[i].equals(DISK_META_RATIO)) {
+				sDiskMetaRatio = Float.parseFloat(args[++i]) ;
+			} 
 
 			i++;
 		}
@@ -511,7 +525,7 @@ public class FileStoragePerfTest {
 		//private long startTime = System.nanoTime();
 		
 		/** The max item number. */
-		long maxItemNumber = 0;
+		static AtomicLong sMaxItemNumber = new AtomicLong(0);
 
 		/** The r. */
 		Random r;// = new Random();
@@ -662,17 +676,7 @@ public class FileStoragePerfTest {
 						/ totalRequests;
 			}
 			
-//			double t99999 = ((double) requestTimes[requestTimes.length - 10]) / 1000;
-			
-			//System.out.println(t99999);
-//			if (time99999 == 0.d) {
-//				time99999 = t99999;
-//			} else {
-//				time99999 = (time99999 * (totalRequests - counter) + t99999
-//						* counter)
-//						/ totalRequests;
-//			}
-			//System.out.println(time99999);
+
 			counter = 0;
 			System
 					.arraycopy(copyArray, 0, requestTimes, 0,
@@ -768,9 +772,6 @@ public class FileStoragePerfTest {
 			return time9999;
 		}
 
-//		public double getTime99999() {
-//			return time99999;
-//		}
 		
 		/**
 		 * Instantiates a new execute thread.
@@ -813,7 +814,6 @@ public class FileStoragePerfTest {
 		 */
 		public void run() {
 			try {
-
 				testPerf(getName());
 			} catch (Exception e) {
 				LOG.error(e);
@@ -825,19 +825,19 @@ public class FileStoragePerfTest {
 
 
 		/**
-		 * Test perf Koda.
+		 * Performance test of OffHeapBlockCache.
 		 * 
 		 * @param key
 		 *            the key
 		 * @throws NativeMemoryException
-		 *             the j emalloc exception
+		 *             
 		 */
 		private void testPerf(String key) throws NativeMemoryException {
 			LOG.info("File Storage Performance test. Cache size =" + sCache.size()
 					+ ": " + Thread.currentThread().getName());
-
-			// TODO init Kode cache
-
+			
+			Random r = new Random();
+			
 			buf = NativeMemory.allocateDirectBuffer(256, 100000);
 			bufPtr = NativeMemory.getBufferAddress(buf);
 
@@ -847,8 +847,12 @@ public class FileStoragePerfTest {
 			for (int i = 0; i < 1000; i++) {
 				values[i] = new byte[r.nextInt(1000) + sAvgValueSize];
 				//values[i] = new byte[4];
-				byte v = (byte)(values[i].length % 111);
-				for(int k=0; k < values.length; k++) values[i][k] = v;
+				//byte v = (byte)(values[i].length % 111);
+				//for(int k=0; k < values[i].length; k++){
+				//	if(k < )
+				//	values[i][k] = v;
+				//}
+				r.nextBytes(values[i]);
 			}
 			
 			byte[] keySuff = key.getBytes();
@@ -912,18 +916,22 @@ public class FileStoragePerfTest {
 			// Approximate number of objects in disk cache
 			long cacheSize = sStorage.getCurrentStorageSize() /( sAvgValueSize + 500);
 			
-			if (maxItemNumber > cacheSize) {
+			if(sCache.getOffHeapCache().size() > cacheSize){
+				cacheSize = sCache.getOffHeapCache().size();
+			}
+			
+			if (sMaxItemNumber.get() > cacheSize) {
 				// return maxItemNumber -
 				// getNextGetOffset(cacheSize);//(Math.abs(r.nextLong()) %
 				// cacheSize);
-				return maxItemNumber - ((nextInt((int) cacheSize)));
+				return sMaxItemNumber.get() - ((nextInt((int) cacheSize)));
 			} else {
 				// return maxItemNumber > 0?getNextGetOffset(maxItemNumber):0;//
 				// Math.abs(r.nextLong()) % maxItemNumber: 0;
 				// return maxItemNumber > 0?Math.abs(r.nextLong()) %
 				// maxItemNumber: 0;
-				return maxItemNumber > 0 ? Math
-						.abs(nextInt((int) maxItemNumber)) : 0;
+				return sMaxItemNumber.get() > 0 ? Math
+						.abs(nextInt((int) sMaxItemNumber.get())) : 0;
 			}
 		}
 
@@ -933,11 +941,6 @@ public class FileStoragePerfTest {
 		/** The success reads. */
 		static AtomicInteger successReads = new AtomicInteger(0);
 		
-		/** The handle null reads. */
-		static AtomicInteger handleNullReads = new AtomicInteger(0);
-		
-		/** The block null reads. */
-		static AtomicInteger blockNullReads = new AtomicInteger(0);
 		
 		/**
 		 * Inner loop.
@@ -948,55 +951,15 @@ public class FileStoragePerfTest {
 		private final boolean innerLoop() throws NativeMemoryException {
 
 			long tt1 = System.nanoTime();
-			//monkeyCall(tt1);
-			ByteBuffer buffer = bufferTLS.get();
 			boolean isReadRequest = isReadRequest();// f > sWriteRatio;
 			if (isReadRequest) {
 				try {
 					long l = getNextGetIndex();
 					totalReads.incrementAndGet();
-					byte[] bkey = getKeyLong(l, keyBuf);
-					FileStorageHandle handle = (FileStorageHandle) sCache.get(bkey);
-					if(handle != null){ 
-						sStorage.getData(handle, buffer);					
-						byte[] block = getValue();
-						if( block != null){
-							int size = Bytes.toInt(block, 0);
-							if( size != block.length){
-								LOG.fatal("Size = "+size+" - wrong. Real size="+(buffer.getInt(0))+" handle="+handle);
-								LOG.info("Total reads ="+totalReads.get()+" success ="+successReads.get()+
-										" hnadleNull="+handleNullReads.get()+" block null="+blockNullReads.get());
-
-								
-								String fileName = sStorage.getFilePath(handle.getId());
-								verifyFile(fileName, handle.getOffset(), handle.getSize());
-								
-								int numAttempts = 10;
-								int attempt = 0;
-								while(attempt ++ < numAttempts){
-									Thread.sleep(1);
-									buffer.clear();
-									sStorage.getData(handle, buffer);					
-									block = getValue();
-									if( block != null){
-										size = Bytes.toInt(block, 0);
-										if(size == block.length) break;
-										LOG.fatal("Attempt="+attempt+" Size = "+size+" - wrong. Real size="+(buffer.getInt(0))+" handle="+handle);
-									}
-								}
-								if(attempt >= numAttempts){
-									System.exit(-1);
-								}
-								
-							} else{
-								successReads.incrementAndGet();
-							}
-						} else{
-							blockNullReads.incrementAndGet();
-						}
-					} else{
-						handleNullReads.incrementAndGet();
-					}
+					String file = "file"+l;
+					BlockCacheKey key = new BlockCacheKey(file, 0, DataBlockEncoding.NONE, BlockType.DATA);
+					Cacheable value = sCache.getBlock(key, false, false);
+					if(value != null) successReads.incrementAndGet(); 
 				} catch (Exception e) {
 					e.printStackTrace();
 					LOG.error("get native call.", e);
@@ -1005,14 +968,12 @@ public class FileStoragePerfTest {
 			} else {
 				try {
 					int i = r.nextInt(1000);
-					byte[] bkey = getKeyLong(maxItemNumber++, keyBuf);
+					String file = "file" + (sMaxItemNumber.getAndIncrement());
 					byte[] value = values[i];
-					//Bytes.putInt(value, 0,  value.length);					
-					putValue(value);
-					// update buffer's 4-7 bytes with value size
-					buffer.putInt(4, value.length);
-					FileStorageHandle handle = (FileStorageHandle) sStorage.storeData(buffer);										
-					sCache.put(bkey, handle);
+					BlockCacheKey key = new BlockCacheKey(file, 0, DataBlockEncoding.NONE, BlockType.DATA);
+					ByteArrayCacheable cacheable = new ByteArrayCacheable(value);
+															
+					sCache.cacheBlock(key, cacheable);
 
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -1224,7 +1185,7 @@ public class FileStoragePerfTest {
 	 */
 	public static String getMemAllocated() {
 
-			return sCache.getTotalAllocatedMemorySize() + "";
+			return sCache.getOffHeapCache().getTotalAllocatedMemorySize() + "";
 
 	}
 
@@ -1248,7 +1209,7 @@ public class FileStoragePerfTest {
 	public static String getCompressedSize()
 	{
 
-		return sCache.getCompressedDataSize()+"";
+		return sCache.getOffHeapCache().getCompressedDataSize()+"";
 	}
 	
 	/**
@@ -1260,7 +1221,7 @@ public class FileStoragePerfTest {
 	{
 
 		{
-			return sCache.getAverageCompressionRatio()+"";
+			return sCache.getOffHeapCache().getAverageCompressionRatio()+"";
 		}
 	}
 	
@@ -1284,7 +1245,7 @@ public class FileStoragePerfTest {
 	public static String getTotalEvictionAttempts()
 	{
 
-			return sCache.getTotalEvictionAttempts()+"";
+			return sCache.getOffHeapCache().getTotalEvictionAttempts()+"";
 	}
 	
 	/**
@@ -1295,7 +1256,7 @@ public class FileStoragePerfTest {
 	public static String getTotalFailedEvictionAttempts()
 	{
 
-		return sCache.getFailedEvictionAttempts()+"";
+		return sCache.getOffHeapCache().getFailedEvictionAttempts()+"";
 	}	
 	
 	/**
@@ -1306,7 +1267,7 @@ public class FileStoragePerfTest {
 	public static String getTotalFailedFatalEvictionAttempts()
 	{
 
-		return sCache.getFailedFatalEvictionAttempts()+"";
+		return sCache.getOffHeapCache().getFailedFatalEvictionAttempts()+"";
 	}
 	
 	/**
@@ -1316,7 +1277,7 @@ public class FileStoragePerfTest {
 	 */
 	public static String getTotalRequests()
 	{
-		return sCache.getTotalRequestCount()+"";
+		return sCache.getOffHeapCache().getTotalRequestCount()+"";
 	}
 	
 	/**
@@ -1326,7 +1287,7 @@ public class FileStoragePerfTest {
 	 */
 	public static String getTotalHits()
 	{
-		return sCache.getHitCount()+"";
+		return sCache.getOffHeapCache().getHitCount()+"";
 	}
 	
 

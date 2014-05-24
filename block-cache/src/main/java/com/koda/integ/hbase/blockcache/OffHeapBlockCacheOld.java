@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.io.HeapSize;
 import org.apache.hadoop.hbase.io.hfile.BlockCache;
 import org.apache.hadoop.hbase.io.hfile.BlockCacheColumnFamilySummary;
@@ -33,7 +34,6 @@ import org.apache.hadoop.hbase.io.hfile.BlockCacheKey;
 import org.apache.hadoop.hbase.io.hfile.CacheStats;
 import org.apache.hadoop.hbase.io.hfile.Cacheable;
 import org.apache.hadoop.hbase.io.hfile.CacheableDeserializer;
-import org.apache.hadoop.hbase.io.hfile.HFile;
 import org.apache.hadoop.util.StringUtils;
 
 import com.koda.KodaException;
@@ -235,7 +235,7 @@ public class OffHeapBlockCacheOld implements BlockCache, HeapSize {
   public OffHeapBlockCacheOld(Configuration conf)
   {
 	    this.blockSize = conf.getInt("hbase.offheapcache.minblocksize",
-	            HFile.DEFAULT_BLOCKSIZE);  
+	    		HColumnDescriptor.DEFAULT_BLOCKSIZE);  
 	 
 	    CacheConfiguration cacheCfg = ConfigHelper.getCacheConfiguration(conf);
 	    maxSize = cacheCfg.getMaxGlobalMemory();

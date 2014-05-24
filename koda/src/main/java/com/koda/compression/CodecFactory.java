@@ -122,7 +122,7 @@ public class CodecFactory {
       case 2: return codecs[1];
       case 3: return codecs[2];
       case 4: return codecs[3];
-      //case 5: return codecs[4];
+      // No codec
       case 0: return null;
     }
     return null;

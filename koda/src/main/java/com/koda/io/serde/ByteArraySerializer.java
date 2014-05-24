@@ -41,12 +41,7 @@ public class ByteArraySerializer implements Serializer<byte[]> {
 	 */
 	@Override
 	public int getClassID(Class<?> clz) {
-		//if(clz.equals(byte[].class)){
-		// Optimized for speed	
 		return ID;
-		//} else{
-			//throw new RuntimeException("Unexpected class: "+clz.getName());
-		//}
 	}
 
 	/* (non-Javadoc)
@@ -71,7 +66,18 @@ public class ByteArraySerializer implements Serializer<byte[]> {
 	 */
 	@Override
 	public byte[] read(ByteBuffer buf) throws IOException {
-		int len = buf.getInt();
+		int pos = buf.position();
+		// Read first byte
+		int len = buf.get();
+		if(len < 0){
+			// Read 4 byte INT
+			buf.position(pos);
+			len = buf.getInt();
+			len &= 0x7fffffff;
+			
+		} else{
+			// SHORT array <= 127 bytes
+		}
 		byte[] buffer = new byte[len];
 		buf.get(buffer);
 		return buffer;
@@ -87,7 +93,18 @@ public class ByteArraySerializer implements Serializer<byte[]> {
 			throw new IOException("IllegalArgument type: "+value);
 		}
 		byte[] buffer = (byte[]) value;
-		int len = buf.getInt();
+		int pos = buf.position();
+		// Read first byte
+		int len = buf.get();
+		if(len < 0){
+			// Read 4 byte INT
+			buf.position(pos);
+			len = buf.getInt();
+			len &= 0x7fffffff;
+
+		} else{
+			// SHORT array <= 127 bytes
+		}
 		if(len > buffer.length) {
 			throw new IOException("Buffer underflow");
 		}
@@ -107,7 +124,11 @@ public class ByteArraySerializer implements Serializer<byte[]> {
 		byte[] value = (byte[]) obj;
 		// This is byte array
 		//buf.putInt(mID);
-		buf.putInt(value.length);
+		if(value.length <= 127){
+			buf.put((byte) value.length);
+		} else{
+			buf.putInt(value.length | (1 << 31));
+		}
 		buf.put(value);
 
 	}

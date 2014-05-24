@@ -49,7 +49,7 @@ public class FileStorageBaseTest extends TestCase{
 	static boolean initDone = false;
 	
 	/** The base dir. */
-	static String baseDir = "/tmp/ramdisk/data";
+	static String baseDir = "/cache";
 	
 	/** The cache. */
 	static OffHeapCache cache ;
