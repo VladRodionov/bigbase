@@ -19,7 +19,7 @@ By introducing multi-level caching to HBase. L1 - row cache, L2 - block cache in
 ###Q: What HBase versions are supported?
 
 HBase 0.94.x onwards (0.94, 0.96, 0.98). You may try 0.92 as well, but this version has not been tested with BigBase.
-> **Note:** BigBase has two versions: 0.94 and 0.96+. See 'releases' section.
+> **Note:** BigBase has three versions: 0.94.x,  0.96.x and 0.98.x. See 'releases' section.
 
 ###Q: Can I upgrade existing HBase cluster, what are requirements and how long will this upgrade take?
 
@@ -54,7 +54,7 @@ http://www.slideshare.net/bigbase/hbase-extreme-makeover
 
 BigBase is licensed under [Affero GPL 3](http://www.gnu.org/licenses/agpl-3.0.html).
 
-(***) This feature has not been tested in 1.0.0 and will be available in the next 1.1.0 release.
+(***) This feature has not been tested in 1.0.0-RC0 and will be available in the next 1.0.0-RC1 release.
  
 
  
