@@ -285,31 +285,22 @@ public class FileExtStorage implements ExtStorage {
 						if(buf.position() > 0) buf.flip();
 					}	
 					
-					
-					//verifyBuffer(buf);
-					
 					int toWrite = buf.limit();
 					checkCurrentFileSize(toWrite);
 					
-					
-					ReentrantReadWriteLock fileLock = getCurrentFileLock();
-					fileLock.writeLock().lockInterruptibly();
-					try{
-						// save data to  file and sync
-						
+					if(storeBuffer(buf) == false){
+						// No space left on device
+						buf.position(0);
+						buf.limit(toWrite);
+						// delete oldest file
+						deleteOldestFile();
+						// reset file pos
 						FileChannel fc = currentForWrite.getChannel();
-						int written = 0;
-						while(written < toWrite){
-							written += fc.write(buf);
-						}
-						
-						fc.force(true);
-						if( written != toWrite){
-							LOG.error("fc written= "+ written+" expected "+toWrite);
-						}
-						currentFileOffset.addAndGet(written);
-					} finally{
-						fileLock.writeLock().unlock();
+						fc.position(currentFileOffset.get());
+                        if(storeBuffer(buf) == false){
+                        	// Did not help - terminate thread - fatal error
+                        	throw new IOException("Write failed. No space left on device");
+                        }						
 					}
 
 					// return buffer back to empty buffer list
@@ -323,11 +314,40 @@ public class FileExtStorage implements ExtStorage {
 						LOG.info(Thread.currentThread().getName() + " exited.");
 						return;
 				} catch(Throwable e){
-					LOG.fatal(e);
-					e.printStackTrace();
+					LOG.fatal("failed", e);
 					LOG.fatal(Thread.currentThread().getName()+" thread died.");
-					//System.exit(-1);
+					return;
+
 				}
+			}
+		}
+		
+		private boolean storeBuffer(ByteBuffer buf) throws InterruptedException, IOException{
+			int toWrite = buf.limit();
+			ReentrantReadWriteLock fileLock = getCurrentFileLock();
+			fileLock.writeLock().lockInterruptibly();
+			try{
+				// save data to  file and sync						
+				FileChannel fc = currentForWrite.getChannel();
+				int written = 0;
+				while(written < toWrite){
+					written += fc.write(buf);
+				}						
+				fc.force(true);
+				currentFileOffset.addAndGet(written);
+				return true;
+			} catch (IOException e){
+				if(e.getMessage().startsWith("No space left")){
+					// Operation failed, but can be repeated
+					// No space left on device
+					LOG.error(e);
+					return false;
+				} else{
+					throw e;
+				}
+			}
+			finally{			
+				fileLock.writeLock().unlock();
 			}
 		}
 		
@@ -401,7 +421,8 @@ public class FileExtStorage implements ExtStorage {
 	/**
 	 * Delete oldest file.
 	 */
-	public void deleteOldestFile() {
+	public synchronized void deleteOldestFile() {
+		
 		
 		LOG.info("[FileExtStorage] exceeded storage limit of "+maxStorageSize+". Deleting "+getFilePath(minId.get()));
 		File f = new File(getFilePath(minId.get()));
