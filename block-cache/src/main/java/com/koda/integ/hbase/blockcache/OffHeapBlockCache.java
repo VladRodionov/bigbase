@@ -183,7 +183,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
   static final Log LOG = LogFactory.getLog(OffHeapBlockCache.class);
 
   /** Default Configuration Parameters. */
-  static final int EXT_STORAGE_REF_SIZE = 84; 
+  static final int EXT_STORAGE_REF_SIZE = 64; 
   
   /** Young generation. */
   static final float DEFAULT_YOUNG_FACTOR = 0.5f;

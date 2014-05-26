@@ -106,28 +106,7 @@ import com.koda.persistence.rawfs.RawFSStore;
  * 8. BlockCache persistence SSD (use FIFO eviction)        
  * 
  * 9. Flushing & compactions (Acumulo compaction algorithm)
- * 
- * Thanks for the clarification. I also came across a previous thread which
- sort of talks about a similar problem.
- http://mail-archives.apache.org/mod_mbox/hbase-user/201204.mbox/%3CCAGpTDNfWNRsNqV7n3wgjE-iCHZPx-CXn1TBchgwRPOhgcoS+bw@mail.gmail.com%3E
-
- I guess my problem is also similar to the fact that my writes are well
- distributed and at a given time I could be writing to a lot of regions.
- Some of the regions receive very little data but since the flush algorithm
- choose at random what to flush when "too many hlogs" is hit, it will flush
- a region with less than 10mb of data causing too many small files. This
- in-turn causes compaction storms where even though major compactions is
- disabled, some of the minor get upgraded to major and that's when things
- start getting worse.
-
- My compaction queues are still the same and so I doubt I will be coming out
- of this storm without bumping up max hlogs for now. Reducing regions per
- server is one option but then I will be wasting my resources since the
- servers at current load are at < 30% CPU and < 25% RAM. Maybe I can bump up
- heap space and give more memory to the the memstore. Sorry, I am just
- thinking out loud.    
-
-
+ *  
  * @author vrodionov
  *
  */
@@ -145,14 +124,7 @@ import com.koda.persistence.rawfs.RawFSStore;
  * 
  */
 
-/**
- * You could always set hbase.online.schema.update.enable to true on your
- * master, restart it (but not the cluster), and you could do what you are
- * describing... but it's a risky feature to use before 0.96.0.
- * 
- * Did you also set hbase.replication to true? If not, you'll have to do it on
- * the region servers and the master via a rolling restart.
- */
+
 public class RowCache {
 
   public final static String ROWCACHE_MAXMEMORY = "offheap.rowcache.maxmemory";
@@ -417,7 +389,7 @@ public class RowCache {
             long hits = rowCache.getHitCount();
             if (requests != lastRequests) {
               // Log only if new data
-              LOG.info("[L1-ROW-CACHE]: accesses="
+              LOG.info("[L1-OFFHEAP]: accesses="
                   + requests
                   + " hits="
                   + hits

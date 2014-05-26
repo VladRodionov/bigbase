@@ -176,7 +176,6 @@ public class FIFOStorageRecycler extends Thread implements StorageRecycler{
         totalScannedFiles.incrementAndGet();
         // Update current storage size
         storage.deleteOldestFile();
-        //storage.updateStorageSize(-size);        
       } catch (Exception e) {
         LOG.error(fileName, e);
       }
