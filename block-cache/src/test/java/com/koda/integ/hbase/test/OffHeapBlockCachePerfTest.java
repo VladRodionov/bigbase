@@ -176,9 +176,9 @@ public class OffHeapBlockCachePerfTest {
 		
 		config.setInt(FileExtStorage.FILE_STORAGE_NUM_BUFFERS, 2);
 		
-		config.setFloat(StorageRecycler.STORAGE_RATIO_LOW_CONF, 0.98f);
+		//config.setFloat(StorageRecycler.STORAGE_RATIO_LOW_CONF, 0.98f);
 		
-		config.setFloat(StorageRecycler.STORAGE_RATIO_HIGH_CONF, 0.99f);
+		//config.setFloat(StorageRecycler.STORAGE_RATIO_HIGH_CONF, 0.99f);
 		
 		//config.setBoolean(FileExtStorage.FILE_STORAGE_PAGE_CACHE, false);
 		

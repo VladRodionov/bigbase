@@ -35,10 +35,10 @@ public interface StorageRecycler {
   
   /* Default values */
   /** Storage low watermark. */ 
-  public final static String STORAGE_RATIO_LOW_DEFAULT     = "0.9f";  
+  public final static String STORAGE_RATIO_LOW_DEFAULT     = "0.97f";  
   
   /** Storage high watermark. */  
-  public final static String STORAGE_RATIO_HIGH_DEFAULT    = "0.95f"; 
+  public final static String STORAGE_RATIO_HIGH_DEFAULT    = "0.98f"; 
   
   /**
    * Sets the.

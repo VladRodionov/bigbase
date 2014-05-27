@@ -197,7 +197,18 @@ public class FIFOStorageRecycler extends Thread implements StorageRecycler{
     long maxStorageSize = storage.getMaxStorageSize();
     long currentSize = storage.getCurrentStorageSize();  
     
-    return (maxStorageSize * lowWatermark - currentSize) < 0;
+    boolean result = (maxStorageSize * lowWatermark - currentSize) < 0;
+    if(result) return true;
+    long partitionSize = storage.getTotalPartitionSize();
+    if(partitionSize != 0L){
+    	long usableSize = storage.getUsablePartitionSpace();    	
+    	result = partitionSize * ( 1-lowWatermark) > usableSize; 
+    	if(result){
+    		LOG.warn("Usable partition size is low: "+usableSize +" of total "+partitionSize);
+    	}
+    } 
+	return result;
+
   }
   
   /**
