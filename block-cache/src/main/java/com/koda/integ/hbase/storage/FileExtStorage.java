@@ -97,6 +97,13 @@ public class FileExtStorage implements ExtStorage {
 	
 	public final static String FILE_STORAGE_PAGE_CACHE = "offheap.blockcache.file.storage.pagecache";
 	
+	/** Maximum %% of a FS partition allowed to be used
+	 *  By default, 5% of a partition is reserved for 'root'
+	 *  We add , 1% to be safe. It means, that default value is 0.94 (94% of a partition can  be allocated
+	 *  total).
+	 *  */
+	public final static String FILE_STORAGE_PARTITION_MAX = "offheap.blockcache.file.storage.partition.max";
+	
 	public final static String DATA_FILE_NAME_PREFIX = "data-";
 	
 	/** The Constant DEFAULT_BUFFER_SIZE. */
@@ -107,6 +114,8 @@ public class FileExtStorage implements ExtStorage {
 	
 	/** The Constant DEFAULT_SC_RATIO. */
 	private final static float DEFAULT_SC_RATIO  = 0.f;
+	
+	private final static float DEFAULT_PARTITION_MAX = 0.94f;
 	
 	/** The Constant DEFAULT_FLUSH_INTERVAL. */
 	private final static long  DEFAULT_FLUSH_INTERVAL = 30000; // in ms
@@ -133,6 +142,13 @@ public class FileExtStorage implements ExtStorage {
 	
 	/** The base storage dir. */
 	private String fileStorageBaseDir;	
+	
+	/** Cache base directory*/
+	private File baseDir;
+	
+	/** Cache partition */
+	private File partition;
+	
 	/** The max storage size. */
 	private long maxStorageSize ;	
 	
@@ -147,6 +163,10 @@ public class FileExtStorage implements ExtStorage {
 	
 	/** The second chance fifo ratio. */
 	private float secondChanceFIFORatio = DEFAULT_SC_RATIO;
+	
+	/** Maximum %% of a cache partition allowed for usage. Default is 94%, Can be increased
+	 * if default reserved for 'root' is less than 5% */
+	private float partitionAllocationMax ;
 	
 	/** The file size limit. */
 	private long fileSizeLimit = DEFAULT_FILE_SIZE_LIMIT;
@@ -402,12 +422,9 @@ public class FileExtStorage implements ExtStorage {
 				LOG.info("Creating "+path);
 				currentForWrite = new RandomAccessFile(path, "rws");
 				currentStorageSize.addAndGet(size);
-
-				//currentFileOffset.set(toWrite);
 				currentFileOffset.set(0);
 				existedIds.put((long)maxId.get(), (long)maxId.get());
 			} else{
-				//currentFileOffset.addAndGet(toWrite);
 			  return;
 			}
 	    if( noPageCache == true){
@@ -426,6 +443,7 @@ public class FileExtStorage implements ExtStorage {
 		
 		LOG.info("[FileExtStorage] exceeded storage limit of "+maxStorageSize+". Deleting "+getFilePath(minId.get()));
 		File f = new File(getFilePath(minId.get()));
+		
 		long fileLength = f.length();
 		boolean result = f.delete();
 		if(result == false){
@@ -465,10 +483,19 @@ public class FileExtStorage implements ExtStorage {
 		// Check if we need to start storage recycler thread
 		float highWatermark = Float.parseFloat(config.get(StorageRecycler.STORAGE_RATIO_HIGH_CONF, 
 				StorageRecycler.STORAGE_RATIO_HIGH_DEFAULT));
-		long currentSize = getCurrentStorageSize();
+		long currentSize = size();//getCurrentStorageSize();
 		long maxSize = getMaxStorageSize();
 		float currentRatio = ((float)currentSize)/ maxSize;
-		if(currentRatio >= highWatermark){
+		long totalSpace = getTotalPartitionSize();
+		long usableSpace = getUsablePartitionSpace();
+		boolean startRecycler = currentRatio >= highWatermark;
+		// Check cache partition
+		boolean partitionAlmostFull = ( totalSpace > 0? ( totalSpace *( 1- highWatermark) > usableSpace): false);
+		startRecycler = startRecycler || partitionAlmostFull;
+		if(partitionAlmostFull){
+			LOG.warn("Partition almost full: usable space ="+usableSpace +" of "+ totalSpace+". Starting recycler thread.");
+		}
+		if( startRecycler){
 			// Start recycler thread
 		  StorageRecycler sr = StorageRecyclerManager.getInstance().getStorageRecycler(config);
 		  sr.set(this);
@@ -715,6 +742,17 @@ public class FileExtStorage implements ExtStorage {
 			throw new IOException("[FileExtStorage] Base directory not specified.");
 		}
 		fileStorageBaseDir = value;
+		
+		baseDir = new File(fileStorageBaseDir);
+		
+		initPartition();
+		if(partition != null){
+			LOG.info("Partition size ["+partition.getAbsolutePath()+"]="+
+					getTotalPartitionSize()+" Usable="+ getUsablePartitionSpace());
+		} else{
+			LOG.warn("Could not detect partition for cache directory: "+ fileStorageBaseDir);
+		}
+		
 		value = cfg.get(FILE_STORAGE_MAX_SIZE);
 		if( value == null){
 			throw new IOException("[FileExtStorage] Maximum storage size not specified.");
@@ -733,6 +771,8 @@ public class FileExtStorage implements ExtStorage {
 		fileSizeLimit = Long.parseLong(value);	
 		noPageCache = !cfg.getBoolean(FILE_STORAGE_PAGE_CACHE, Boolean.parseBoolean(DEFAULT_PAGE_CACHE));
 		
+		partitionAllocationMax = cfg.getFloat(FILE_STORAGE_PARTITION_MAX, DEFAULT_PARTITION_MAX);
+		
 		// init locks
 		for(int i=0; i < locks.length; i++){
 			locks[i] = new ReentrantReadWriteLock();
@@ -741,6 +781,13 @@ public class FileExtStorage implements ExtStorage {
 	}
 
 	
+	private void initPartition() {
+		partition = baseDir;
+		while(partition != null && partition.getTotalSpace() == 0L){
+			partition = partition.getParentFile();
+		}				
+	}
+
 	/**
 	 * Dump config.
 	 */
@@ -1250,6 +1297,21 @@ public class FileExtStorage implements ExtStorage {
 
 	}
 
+	public long getTotalPartitionSize()
+	{
+		return partition == null? 0L: partition.getTotalSpace();
+	}
+	
+	/**
+	 * Example:
+	 * sudo tune2fs -m 2 /dev/md0 - sets 2% for 'root' => 98% is usable
+	 * @return
+	 */
+	public long getUsablePartitionSpace(){
+		return partition == null? 0L: partition.getUsableSpace();
+	}
+	
+	
 	/**
 	 * Gets the max open fd.
 	 *
