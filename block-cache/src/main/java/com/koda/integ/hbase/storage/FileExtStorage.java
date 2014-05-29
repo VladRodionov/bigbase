@@ -97,13 +97,6 @@ public class FileExtStorage implements ExtStorage {
 	
 	public final static String FILE_STORAGE_PAGE_CACHE = "offheap.blockcache.file.storage.pagecache";
 	
-	/** Maximum %% of a FS partition allowed to be used
-	 *  By default, 5% of a partition is reserved for 'root'
-	 *  We add , 1% to be safe. It means, that default value is 0.94 (94% of a partition can  be allocated
-	 *  total).
-	 *  */
-	public final static String FILE_STORAGE_PARTITION_MAX = "offheap.blockcache.file.storage.partition.max";
-	
 	public final static String DATA_FILE_NAME_PREFIX = "data-";
 	
 	/** The Constant DEFAULT_BUFFER_SIZE. */
@@ -114,8 +107,6 @@ public class FileExtStorage implements ExtStorage {
 	
 	/** The Constant DEFAULT_SC_RATIO. */
 	private final static float DEFAULT_SC_RATIO  = 0.f;
-	
-	private final static float DEFAULT_PARTITION_MAX = 0.94f;
 	
 	/** The Constant DEFAULT_FLUSH_INTERVAL. */
 	private final static long  DEFAULT_FLUSH_INTERVAL = 30000; // in ms
@@ -163,11 +154,7 @@ public class FileExtStorage implements ExtStorage {
 	
 	/** The second chance fifo ratio. */
 	private float secondChanceFIFORatio = DEFAULT_SC_RATIO;
-	
-	/** Maximum %% of a cache partition allowed for usage. Default is 94%, Can be increased
-	 * if default reserved for 'root' is less than 5% */
-	private float partitionAllocationMax ;
-	
+		
 	/** The file size limit. */
 	private long fileSizeLimit = DEFAULT_FILE_SIZE_LIMIT;
 	
@@ -450,6 +437,7 @@ public class FileExtStorage implements ExtStorage {
 			LOG.fatal("[FileExtStorage] Deleting "+getFilePath(minId.get())+" failed.");
 		} else{
 			LOG.info("[FileExtStorage] Deleting "+getFilePath(minId.get())+" succeeded.");	
+//TODO: what to do if file deletion failed?	
 			// Increment min id.
 			Queue<RandomAccessFile> files = readers.remove(minId.get());
 			// Remove from existed
@@ -629,24 +617,35 @@ public class FileExtStorage implements ExtStorage {
 	}
 	
 	/**
-	 * Put file.
+	 * Put file back to the pool
+	 * TODO: race condition
 	 *
 	 * @param id the id
 	 * @param file the file
 	 */
 	private void putFile(int id, RandomAccessFile file) {
 		Queue<RandomAccessFile> fileReaders = readers.get(id);
+		boolean result = false;
+		
 		if (fileReaders == null) {
-			fileReaders = new ArrayBlockingQueue<RandomAccessFile>(maxOpenFD);
-			readers.putIfAbsent(id, fileReaders);
+            // This means that file has been deleted
+			result = false;
+		} else{
+			result = fileReaders.offer(file);			
+			// Put back if present
+			// Make sure that file has not been deleted
+			if(readers.replace(id, fileReaders) == null){
+				result = false;
+				// clear queue
+				fileReaders.clear();
+			}
+			
 		}
-		fileReaders = readers.get(id);
-		boolean result = fileReaders.offer(file);
 		if (result == false) {
 			try {
 				file.close();
-			} catch (IOException e1) {
-				LOG.error(e1);
+			} catch (IOException e) {
+				LOG.error(e);
 			}
 		}
 	}
@@ -771,8 +770,6 @@ public class FileExtStorage implements ExtStorage {
 		fileSizeLimit = Long.parseLong(value);	
 		noPageCache = !cfg.getBoolean(FILE_STORAGE_PAGE_CACHE, Boolean.parseBoolean(DEFAULT_PAGE_CACHE));
 		
-		partitionAllocationMax = cfg.getFloat(FILE_STORAGE_PARTITION_MAX, DEFAULT_PARTITION_MAX);
-		
 		// init locks
 		for(int i=0; i < locks.length; i++){
 			locks[i] = new ReentrantReadWriteLock();
@@ -780,7 +777,9 @@ public class FileExtStorage implements ExtStorage {
 		
 	}
 
-	
+	/**
+	 * Finds disk partition this cache folder belong to.
+	 */
 	private void initPartition() {
 		partition = baseDir;
 		while(partition != null && partition.getTotalSpace() == 0L){
@@ -805,7 +804,7 @@ public class FileExtStorage implements ExtStorage {
 	}
 	
 	/**
-	 * Inits the queues.
+	 * Initializes the queues.
 	 */
 	private void initQueues()
 	{
@@ -819,8 +818,6 @@ public class FileExtStorage implements ExtStorage {
 		try {
 			activeBuffer.set(emptyBuffersQueue.take());
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			//e.printStackTrace();
 			LOG.warn(e);
 		}
 	}
@@ -974,7 +971,8 @@ public class FileExtStorage implements ExtStorage {
 				buf.position(pos);
 				buf.limit(pos + 4 + blockSize);			
 				activeBuffer.get().put(buf);			
-				FileStorageHandle fsh = new FileStorageHandle(maxIdForWrites.get(), (int)(currentFileOffsetForWrites.get()), blockSize);
+				FileStorageHandle fsh = new FileStorageHandle(maxIdForWrites.get(), 
+						(int)(currentFileOffsetForWrites.get()), blockSize);
 				handles.add(fsh);
 				// Increase offset in current file for writes;
 				currentFileOffsetForWrites.addAndGet(blockSize + 4);
@@ -1063,22 +1061,20 @@ public class FileExtStorage implements ExtStorage {
 			// We need to keep overall object (key+block) size in a file
 			buf.position(pos);
 			buf.limit(pos + size + 4);
-			//LOG.info("pos="+pos+" capacity="+activeBuffer.get().capacity()+" size+4="+(size+4));
 			activeBuffer.get().put(buf);
 			
-			FileStorageHandle fsh = new FileStorageHandle(maxIdForWrites.get(), (int)(currentFileOffsetForWrites.get()), size);
+			FileStorageHandle fsh = new FileStorageHandle(maxIdForWrites.get(), 
+					(int)(currentFileOffsetForWrites.get()), size);
 			// Increase offset in current file for writes;
 			currentFileOffsetForWrites.addAndGet(size+4);
 			return fsh;
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			writeLock.writeLock().unlock();
 			buf.position(pos);
 			return storeData(buf);
 			
 		} finally{
-			// TODO check if we have a lock
 			WriteLock lock = writeLock.writeLock();
 			if(lock.isHeldByCurrentThread()){
 				lock.unlock();
@@ -1086,41 +1082,6 @@ public class FileExtStorage implements ExtStorage {
 		}
 	}
 
-	/**
-	 * Verify buffer.
-	 *
-	 * @throws IOException Signals that an I/O exception has occurred.
-	 */
-//	private void verifyBuffer(ByteBuffer buff) {
-//		int current = buff.position();
-//		
-//		int limit = current > 0? current: buff.limit();
-//
-//		buff.position(0);
-//		buff.limit(limit);
-//		byte[] bytes = new byte[4];
-//		try{
-//			while(buff.hasRemaining()){
-//				buff.get(bytes);
-//				int size = Bytes.toInt(bytes);
-//				if(size < 10000 || size > 11000){
-//					LOG.fatal("ByteBuffer corrupted at "+(buff.position() -4) + "limit="+limit+ " current="+current+
-//						" current file="+maxId.get()+" offset "+currentFileOffset.get()+" size="+size);
-//					//buff.position(limit);
-//					return;
-//				} else{
-//					int pos = buff.position();
-//					buff.position(pos + size -4);
-//				
-//				}
-//			}
-//		} finally{
-//			buff.position(0);
-//			buff.limit(limit);
-//		}
-//
-//		
-//	}
 
 
 	/* (non-Javadoc)
@@ -1136,8 +1097,7 @@ public class FileExtStorage implements ExtStorage {
 				while(flusher.isAlive()){
 					try {
 						flusher.interrupt();
-						flusher.join(10000);
-						LOG.info("Expired 10000");
+						flusher.join(10000);					
 					} catch (InterruptedException e) {}								
 				}
 			}
@@ -1181,7 +1141,8 @@ public class FileExtStorage implements ExtStorage {
 	 */
 	@Override
 	public void flush() throws IOException {
-//TODO this method flashes only internal buffer and does not touch internal flusher queue
+		//TODO this method flashes only internal buffer 
+		//and does not touch internal flusher queue
 		LOG.info("Flushing internal buffer to the storage" );
 		long start = System.currentTimeMillis();
 		writeLock.writeLock().lock();
@@ -1196,8 +1157,6 @@ public class FileExtStorage implements ExtStorage {
 				buf.clear();
 				bufferOffset.set(0);
 				// we advance to next file;
-				
-				
 			}
 		} catch(Exception e){
 			LOG.error(e);
