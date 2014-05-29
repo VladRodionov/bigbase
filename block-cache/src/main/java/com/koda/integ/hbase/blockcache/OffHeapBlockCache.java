@@ -54,7 +54,6 @@ import com.koda.integ.hbase.storage.ExtStorage;
 import com.koda.integ.hbase.storage.ExtStorageManager;
 import com.koda.integ.hbase.storage.StorageHandle;
 import com.koda.integ.hbase.util.CacheableSerializer;
-import com.koda.integ.hbase.util.StorageHandleSerializer;
 import com.koda.integ.hbase.util.Utils;
 import com.koda.io.serde.SerDe;
 import com.koda.persistence.PersistenceMode;
@@ -264,9 +263,6 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
   /** Fast on-heap cache to store NON-DATA blocks (INDEX, BLOOM etc). */
   private OnHeapBlockCache onHeapCache;
   
-  
-  private boolean testMode = false;
-  
   private AtomicLong fatalExternalReads = new AtomicLong(0);
   /**
    * Instantiates a new off heap block cache.
@@ -282,14 +278,10 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
       if(blockCacheMaxSize == 0L){
         throw new RuntimeException("off heap block cache size is not defined");
       }
-      nativeBufferSize = conf.getInt(BLOCK_CACHE_BUFFER_SIZE, DEFAULT_BLOCK_CACH_BUFFER_SIZE);
-      
+      nativeBufferSize = conf.getInt(BLOCK_CACHE_BUFFER_SIZE, DEFAULT_BLOCK_CACH_BUFFER_SIZE);      
       extCacheMaxSize = conf.getLong(BLOCK_CACHE_EXT_STORAGE_MEMORY_SIZE, (long) (0.1 * blockCacheMaxSize));
-
       youngGenFactor = conf.getFloat(BLOCK_CACHE_YOUNG_GEN_FACTOR, DEFAULT_YOUNG_FACTOR);
       overflowExtEnabled = conf.getBoolean(BLOCK_CACHE_OVERFLOW_TO_EXT_STORAGE_ENABLED, false);
-      testMode = conf.getBoolean(BLOCK_CACHE_TEST_MODE, false);
-      
       isPersistent = conf.getBoolean(BLOCK_CACHE_PERSISTENT, false);
       isSnapshotsEnabled = conf.getBoolean(BLOCK_CACHE_SNAPSHOTS, false);
       snapshotsInterval = conf.getInt(BLOCK_CACHE_SNAPSHOT_INTERVAL, 600) * 1000;
@@ -319,7 +311,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
       
       
       try {
-      //TODO - Verify we have deep enough copy
+
       CacheConfiguration cacheCfg =  new CacheConfiguration();
       cacheCfg.setCacheName("block-cache");
       
@@ -342,7 +334,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
         CacheConfiguration extStorageCfg  = new CacheConfiguration();
         extStorageCfg.setCacheName("extStorageCache");
         extStorageCfg.setMaxMemory(extCacheMaxSize);
-        extStorageCfg.setEvictionPolicy(EvictionPolicy.LRU.toString());
+        extStorageCfg.setEvictionPolicy(EvictionPolicy.FIFO.toString());
         extStorageCfg.setSerDeBufferSize(4096);// small
         extStorageCfg.setPreevictionListSize(40);
         extStorageCfg.setKeyClassName(byte[].class.getName());
@@ -466,10 +458,6 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
     return retValue;
   }
   
-  private final boolean isTestMode()
-  {
-     return testMode; 
-  }
   
   /**
    * Calculate on heap cache size.
@@ -749,8 +737,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
         // Cache on-heap only non-data blocks
         onHeapCache.cacheBlock(cacheKey, buf, inMemory);
       }
-      // TODO: Remove test mode
-      if( isTestMode() && isExternalStorageEnabled()){
+      if( isExternalStorageEnabled()){
         // FIXME This code disables storage in non-test mode???
         byte[] hashed = Utils.hash128(blockName);
         // TODO : do we really need to check this?
@@ -963,7 +950,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
            extStats.hit(caching);
          }
          
-      } else if( isTestMode() == true && isExternalStorageEnabled()){
+      } else if(isExternalStorageEnabled()){
         byte[] hashed = Utils.hash128(blockName);
         if(extStorageCache.contains(hashed) == false){      
           // FIXME: double check 'contains'
