@@ -17,7 +17,11 @@
 *******************************************************************************/
 package com.koda.integ.hbase.test;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
@@ -40,8 +44,8 @@ import com.koda.NativeMemory;
 import com.koda.NativeMemoryException;
 import com.koda.integ.hbase.blockcache.OffHeapBlockCache;
 import com.koda.integ.hbase.storage.FileExtStorage;
-import com.koda.integ.hbase.storage.StorageRecycler;
 import com.koda.integ.hbase.stub.ByteArrayCacheable;
+import com.koda.integ.hbase.util.CacheableSerializer;
 import com.koda.util.Utils;
 
 // TODO: Auto-generated Javadoc
@@ -75,6 +79,10 @@ public class OffHeapBlockCachePerfTest {
 	
 	private final static String DISK_META_RATIO = "-dm";
 	
+	private final static String PERSISTENT = "-p";
+	
+	private final static String SYSTEM_DIR = "-s";
+	
 
 
 	/** The N. */
@@ -86,6 +94,10 @@ public class OffHeapBlockCachePerfTest {
 
 	/** The base dir. */
 	static String baseDir = "/cache";
+	
+	static String sSystemDataDir="/tmp/cache";
+	
+	static boolean sIsPersistent  = false;
 	
 	static long sMaxFileSize = 2000000000L; 
 	
@@ -160,9 +172,12 @@ public class OffHeapBlockCachePerfTest {
 		config.set(OffHeapBlockCache.BLOCK_CACHE_MEMORY_SIZE, Long.toString(sRAMCacheSize));
 		
 	    config.setBoolean(OffHeapBlockCache.BLOCK_CACHE_OVERFLOW_TO_EXT_STORAGE_ENABLED, true);
-	    config.setBoolean(OffHeapBlockCache.BLOCK_CACHE_TEST_MODE, true);
 	    config.setLong(OffHeapBlockCache.BLOCK_CACHE_EXT_STORAGE_MEMORY_SIZE, (long)( sDiskMetaRatio * sRAMCacheSize));
 	    config.set(OffHeapBlockCache.BLOCK_CACHE_COMPRESSION, "LZ4");
+	    
+	    config.setBoolean(OffHeapBlockCache.BLOCK_CACHE_PERSISTENT, sIsPersistent);
+	    	    	    
+	    config.set(OffHeapBlockCache.BLOCK_CACHE_DATA_ROOTS, sSystemDataDir);	    
 	    
 		// Set L3 config 
 		config.set(FileExtStorage.FILE_STORAGE_BASE_DIR, baseDir);
@@ -176,13 +191,12 @@ public class OffHeapBlockCachePerfTest {
 		
 		config.setInt(FileExtStorage.FILE_STORAGE_NUM_BUFFERS, 2);
 		
-		//config.setFloat(StorageRecycler.STORAGE_RATIO_LOW_CONF, 0.98f);
-		
-		//config.setFloat(StorageRecycler.STORAGE_RATIO_HIGH_CONF, 0.99f);
-		
-		//config.setBoolean(FileExtStorage.FILE_STORAGE_PAGE_CACHE, false);
-		
-		checkDir();
+		if(sIsPersistent == false){
+			checkDir();
+		} else{
+			// Set deserializer
+			CacheableSerializer.setSerializer(ByteArrayCacheable.deserializer);
+		}
 		
 		// Create block cache		
 		sCache = new OffHeapBlockCache(config);
@@ -349,7 +363,11 @@ public class OffHeapBlockCachePerfTest {
 
 		parseArgs(args);
 		setUp();
-
+		
+		try{readMaxItemNumber();} catch(Exception e){
+			LOG.warn(e);
+		}
+		
 		String[] keyPrefix = new String[sClientThreads];
 		Random r = new Random();
 		for (int i = 0; i < sClientThreads; i++) {
@@ -372,10 +390,38 @@ public class OffHeapBlockCachePerfTest {
 		LOG.info("Estimated RPS="
 				+ ((double) (sPuts.get() + sGets.get()) * 1000) / (t2 - t1));
 		
+		if(sIsPersistent){
+			sCache.shutdown();
+		}
+		
+		saveMaxItemNumber();
+		
 		System.exit(0);
 
 	}
 
+	
+	private static void saveMaxItemNumber() throws IOException
+	{
+		if(sIsPersistent == false) return;
+		FileOutputStream fos = new FileOutputStream(sSystemDataDir + File.separator+"number");
+		DataOutputStream dos = new DataOutputStream(fos);
+		dos.writeLong(ExecuteThread.sMaxItemNumber.get());
+		LOG.info("Saved max item number: "+ExecuteThread.sMaxItemNumber.get());
+		dos.close();
+		fos.close();
+	}
+	
+	private static void readMaxItemNumber() throws IOException
+	{
+		if(sIsPersistent == false) return;
+		FileInputStream fis = new FileInputStream(sSystemDataDir + File.separator+"number");
+		DataInputStream dis = new DataInputStream(fis);
+		ExecuteThread.sMaxItemNumber.set(dis.readLong());
+		LOG.info("Loaded max item number: "+ExecuteThread.sMaxItemNumber.get());
+		dis.close();
+		fis.close();
+	}
 
 	/**
 	 * Parses the args.
@@ -406,6 +452,10 @@ public class OffHeapBlockCachePerfTest {
 				sMaxFileSize = Long.parseLong(args[++i]) ;
 			} else if (args[i].equals(DISK_META_RATIO)) {
 				sDiskMetaRatio = Float.parseFloat(args[++i]) ;
+			} else if (args[i].equals(PERSISTENT)) {
+				sIsPersistent = true;
+			} else if (args[i].equals(SYSTEM_DIR)) {
+				sSystemDataDir= args[++i] ;
 			} 
 
 			i++;

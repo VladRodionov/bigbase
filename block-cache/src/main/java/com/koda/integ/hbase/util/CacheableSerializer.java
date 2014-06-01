@@ -18,14 +18,20 @@
 package com.koda.integ.hbase.util;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.koda.integ.hbase.blockcache.OffHeapBlockCache;
 import com.koda.integ.hbase.stub.ByteArrayCacheable;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hbase.io.hfile.Cacheable;
 import org.apache.hadoop.hbase.io.hfile.CacheableDeserializer;
+import org.apache.hadoop.hbase.io.hfile.HFileBlock;
 
 import com.koda.io.serde.Serializer;
 
@@ -34,7 +40,8 @@ import com.koda.io.serde.Serializer;
  * The Class CacheableSerializer.
  */
 public class CacheableSerializer implements Serializer<Cacheable> {
-
+	  /** The Constant LOG. */
+	  static final Log LOG = LogFactory.getLog(CacheableSerializer.class);
 	/** The id. */
 	private static int ID = START_ID - 4;
 	
@@ -82,7 +89,7 @@ public class CacheableSerializer implements Serializer<Cacheable> {
 	 */
 	@Override
 	public Cacheable read(ByteBuffer buf) throws IOException {
-		if(deserializer == null){
+		if(deserializer == null || deserializer.get() == null){
 			return null;
 		}
 		ByteBuffer bbuf = buf.slice();
@@ -110,10 +117,63 @@ public class CacheableSerializer implements Serializer<Cacheable> {
 		// Serializer does not honor current buffer position
 		int len = obj.getSerializedLength();
 		int pos = buf.position();
-		//*DEBUG*/ System.out.println("uncompressed write size="+len+" pos="+pos);
 		obj.serialize(buf);		
 		buf.limit(len + pos);
 		buf.position(len+pos);
 	}
+	
+	public static CacheableDeserializer<Cacheable> getDeserializer()
+	{
+		return deserializer.get();
+	}
+	
+	public static void setSerializer(CacheableDeserializer<Cacheable> ser)
+	{
+		deserializer.set(ser);
+	}
+	
+	@SuppressWarnings("unchecked")
+	public static void setHFileDeserializer()
+	{
+        Field field = getProtectedField(HFileBlock.class, "blockDeserializer");
+
+        if (field == null){
+            LOG.error("Could not get access to HFileBlock.blockDeserializer");
+        	return;
+        }
+
+        try
+        {
+        	CacheableDeserializer<Cacheable> serde = (CacheableDeserializer<Cacheable>) field.get(null);
+        	if(serde != null){
+        		deserializer.set(serde);
+        	} else{
+        		LOG.warn("HFileBlock.blockDeserializer is null");
+        	}
+        }
+        catch (Exception e)
+        {
+            LOG.warn("unable to read HFileBlock.blockDeserializer");
+        }
+        
+	}
+	
+    @SuppressWarnings("unchecked")
+    private static Field getProtectedField(Class klass, String fieldName)
+    {
+        Field field;
+
+        try
+        {
+            field = klass.getDeclaredField(fieldName);
+            field.setAccessible(true);
+        }
+        catch (Exception e)
+        {
+            throw new AssertionError(e);
+        }
+
+        return field;
+    }
 
 }

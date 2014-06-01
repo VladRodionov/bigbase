@@ -195,8 +195,8 @@ public class FIFOStorageRecycler extends Thread implements StorageRecycler{
   private boolean needContinue()
   {
     long maxStorageSize = storage.getMaxStorageSize();
-    long currentSize = storage.getCurrentStorageSize();  
-    
+    long currentSize = storage.size();  
+    //*DEBUG*/ LOG.info("max="+maxStorageSize+" current="+currentSize);
     boolean result = (maxStorageSize * lowWatermark - currentSize) < 0;
     if(result) return true;
     long partitionSize = storage.getTotalPartitionSize();
