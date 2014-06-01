@@ -109,7 +109,7 @@ public class FileExtStorage implements ExtStorage {
 	private final static float DEFAULT_SC_RATIO  = 0.f;
 	
 	/** The Constant DEFAULT_FLUSH_INTERVAL. */
-	private final static long  DEFAULT_FLUSH_INTERVAL = 30000; // in ms
+	private final static long  DEFAULT_FLUSH_INTERVAL = 5000; // in ms
 	
 	/** The Constant DEFAULT_FILE_SIZE_LIMIT. */
 	private final static long DEFAULT_FILE_SIZE_LIMIT = 2 * 1000000000;
@@ -1150,18 +1150,26 @@ public class FileExtStorage implements ExtStorage {
 			ByteBuffer buf = activeBuffer.get();
 			if(bufferOffset.get() == 0) {
 				// skip flush
+				LOG.info("Skipping flush");
 				return;
 			}
 			if(buf != null){
-				currentForWrite.getChannel().write(buf);
+				if(buf.position() != 0) buf.flip();
+				while(buf.hasRemaining()){
+					currentForWrite.getChannel().write(buf);
+				}
 				buf.clear();
 				bufferOffset.set(0);
 				// we advance to next file;
+			} else{
+				LOG.warn("Active buffer is NULL");
 			}
 		} catch(Exception e){
 			LOG.error(e);
 		} finally{
 			writeLock.writeLock().unlock();
+			// Close file
+			currentForWrite.close();
 		}
 		LOG.info("Flushing completed in "+ (System.currentTimeMillis() - start)+"ms");
 	}
@@ -1327,8 +1335,7 @@ public class FileExtStorage implements ExtStorage {
 
   @Override
   public void shutdown(boolean isPersistent) throws IOException {
-    // TODO Auto-generated method stub
-    
+	  close();
   }
 
   @Override

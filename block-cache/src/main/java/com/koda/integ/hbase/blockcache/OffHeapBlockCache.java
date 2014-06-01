@@ -41,7 +41,6 @@ import org.apache.hadoop.hbase.io.hfile.Cacheable;
 import org.apache.hadoop.hbase.io.hfile.CacheableDeserializer;
 import org.apache.hadoop.util.StringUtils;
 
-import com.koda.KodaException;
 import com.koda.cache.CacheManager;
 import com.koda.cache.CacheScanner;
 import com.koda.cache.OffHeapCache;
@@ -283,6 +282,17 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
       youngGenFactor = conf.getFloat(BLOCK_CACHE_YOUNG_GEN_FACTOR, DEFAULT_YOUNG_FACTOR);
       overflowExtEnabled = conf.getBoolean(BLOCK_CACHE_OVERFLOW_TO_EXT_STORAGE_ENABLED, false);
       isPersistent = conf.getBoolean(BLOCK_CACHE_PERSISTENT, false);
+      if(isPersistent){
+    	  // Check if we have already set CacheableDeserializer
+    	  // We need to set deserializer before starting cache
+    	  // because we can have already cached blocks on cache start up
+    	  // and first get before put will fail. 
+    	  if(CacheableSerializer.getDeserializer() == null){
+    		  CacheableSerializer.setHFileDeserializer();
+    	  } else{
+    		  LOG.info("CacheableSerializer is already set.");
+    	  }
+      }
       isSnapshotsEnabled = conf.getBoolean(BLOCK_CACHE_SNAPSHOTS, false);
       snapshotsInterval = conf.getInt(BLOCK_CACHE_SNAPSHOT_INTERVAL, 600) * 1000;
       
@@ -972,7 +982,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
       return bb;
     }catch(Exception e)
     {
-      LOG.error(e);
+      LOG.error( cacheKey.toString(),e);
       throw new RuntimeException(e);
     }
   }
@@ -1142,12 +1152,9 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
         if(storage != null){
           storage.shutdown(isPersistent);
         }
-    } catch (KodaException e) {
-      LOG.error(e);
-    } catch (IOException e) {
-      // TODO Auto-generated catch block
-      LOG.error(e);
-    }
+    } catch (Exception e) {
+      LOG.error("Shutdown failed", e);
+    } 
   }
 
   /**
