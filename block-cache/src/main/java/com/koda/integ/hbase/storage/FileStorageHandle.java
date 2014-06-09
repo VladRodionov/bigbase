@@ -25,7 +25,7 @@ import com.koda.integ.hbase.util.Utils;
 /**
  * The Class FileStorageHandle.
  */
-public class FileStorageHandle implements StorageHandle {
+public class FileStorageHandle implements StorageHandle, Cloneable {
 
 	/** The id. */
 	protected int id;
@@ -147,6 +147,15 @@ public class FileStorageHandle implements StorageHandle {
 		StringBuffer sbuf = new StringBuffer();
 		sbuf.append("id="+id+" offset="+offset+" size="+size);
 		return sbuf.toString();
+	}
+	
+	public FileStorageHandle copy(){
+		try {
+			return (FileStorageHandle) this.clone();
+		} catch (CloneNotSupportedException e) {
+			
+		}
+		return null;
 	}
 	
 	public static void main(String[] args){

@@ -694,7 +694,7 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
 	    long maxSize = storage.getMaxStorageSize() ;
 	    long freeSize = maxSize - totalSize;   
 	    
-	    OnHeapBlockCache.LOG.info("[L3-DISK]    : " +
+	    OffHeapBlockCache.LOG.info("[L3-DISK]    : " +
 	        "total=" + StringUtils.byteDesc(totalSize) + ", " +        
 	        "free=" + StringUtils.byteDesc(freeSize) + ", " +
 	        "max=" + StringUtils.byteDesc(maxSize) + ", " +
@@ -813,8 +813,6 @@ public class OffHeapBlockCache implements BlockCache, HeapSize {
       serde.writeCompressed(buffer, buf, codec);
       int pos = buffer.position();
       buffer.putInt(0, pos - 4);
-    } else {
-      buffer.putInt(0, 0);
     }
     buffer.flip();
     StorageHandle handle = storage.storeData(buffer);

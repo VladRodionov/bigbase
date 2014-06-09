@@ -740,7 +740,7 @@ public class FileExtStorage implements ExtStorage {
 		if( value == null){
 			throw new IOException("[FileExtStorage] Base directory not specified.");
 		}
-		fileStorageBaseDir = value;
+		fileStorageBaseDir = value.trim();
 		
 		baseDir = new File(fileStorageBaseDir);
 		
