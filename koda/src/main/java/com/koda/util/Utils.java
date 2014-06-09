@@ -100,58 +100,61 @@ public class Utils {
   	 * @return the int
   	 */
   	public static int hash(ByteBuffer data, final int offset, final int length,  final int seed) {
-//		    int m = 0x5bd1e995;
-//		    int r = 24;
-//		    //int length = data.length;
-//		    int h = seed ^ length;
-//		    data.position(offset);
-//		    int len_4 = length >> 2;
-//
-//		    for (int i = 0; i < len_4; i++) {
-//		      int i_4 = i << 2;
-//		      int k = data.get(offset + i_4 + 3);
-//		      k = k << 8;
-//		      k = k | (data.get(offset + i_4 + 2) & 0xff);
-//		      k = k << 8;
-//		      k = k | (data.get(offset + i_4 + 1) & 0xff);
-//		      k = k << 8;
-//		      k = k | (data.get(offset+ i_4 + 0) & 0xff);
-//		      k *= m;
-//		      k ^= k >>> r;
-//		      k *= m;
-//		      h *= m;
-//		      h ^= k;
-//		    }
-//
-//		    // avoid calculating modulo
-//		    int len_m = len_4 << 2;
-//		    int left = length - len_m;
-//
-//		    if (left != 0) {
-//		      if (left >= 3) {
-//		        h ^= data.get(offset+length - 3) << 16;
-//		      }
-//		      if (left >= 2) {
-//		        h ^= data.get(offset+length - 2) << 8;
-//		      }
-//		      if (left >= 1) {
-//		        h ^= data.get(offset+length - 1);
-//		      }
-//
-//		      h *= m;
-//		    }
-//
-//		    h ^= h >>> 13;
-//		    h *= m;
-//		    h ^= h >>> 15;
-//			// This is a stupid thinh I have ever stuck upon
-//			if(h == Integer.MIN_VALUE) h = -(Integer.MIN_VALUE +1);
-//		    return h;
-  			//return hash_murmur3(data, offset, length, seed);
 
-  			int h = murmur3hashNative(data, offset, length, seed);
+  		
+		if(data.isDirect() == false){    
+  		int m = 0x5bd1e995;
+		    int r = 24;
+		    int h = seed ^ length;
+		    data.position(offset);
+		    int len_4 = length >> 2;
+
+		    for (int i = 0; i < len_4; i++) {
+		      int i_4 = i << 2;
+		      int k = data.get(offset + i_4 + 3);
+		      k = k << 8;
+		      k = k | (data.get(offset + i_4 + 2) & 0xff);
+		      k = k << 8;
+		      k = k | (data.get(offset + i_4 + 1) & 0xff);
+		      k = k << 8;
+		      k = k | (data.get(offset+ i_4 + 0) & 0xff);
+		      k *= m;
+		      k ^= k >>> r;
+		      k *= m;
+		      h *= m;
+		      h ^= k;
+		    }
+
+		    // avoid calculating modulo
+		    int len_m = len_4 << 2;
+		    int left = length - len_m;
+
+		    if (left != 0) {
+		      if (left >= 3) {
+		        h ^= data.get(offset+length - 3) << 16;
+		      }
+		      if (left >= 2) {
+		        h ^= data.get(offset+length - 2) << 8;
+		      }
+		      if (left >= 1) {
+		        h ^= data.get(offset+length - 1);
+		      }
+
+		      h *= m;
+		    }
+
+		    h ^= h >>> 13;
+		    h *= m;
+		    h ^= h >>> 15;
+			// This is a stupid thing I have ever stuck upon
+			if(h == Integer.MIN_VALUE) h = -(Integer.MIN_VALUE +1);
+		    return h;
+		} else{
+  			// Direct buffer
+			int h = murmur3hashNative(data, offset, length, seed);
   			if(h == Integer.MIN_VALUE) h = -(Integer.MIN_VALUE +1);
   			return h;
+		}
   	}
 
  
@@ -175,11 +178,7 @@ public class Utils {
   			return h;
   		}
  
-//	        public static void hash_murmur3_128(ByteBuffer key, int offset, int len, int seed, byte[] out )
-//	        {
-//	 
-//	            murmur3hashNative128(key, offset, len, seed, out);
-//	        }  
+
 		  
   		/**
 		   * Hash_murmur3.

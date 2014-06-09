@@ -22,7 +22,17 @@
                         <enabled>true</enabled>
                     </snapshots>
                     <releases>
-                        <enabled>false</enabled>
+                        <enabled>true</enabled>
+                    </releases>
+                </repository>
+                <repository>
+                    <id>Repo2 Maven</id>
+                    <url>http://repo2.maven.org/maven2/</url>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                    <releases>
+                        <enabled>true</enabled>
                     </releases>
                 </repository>
                 <repository>

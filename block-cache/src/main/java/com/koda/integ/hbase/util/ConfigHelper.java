@@ -17,6 +17,9 @@
 *******************************************************************************/
 package com.koda.integ.hbase.util;
 
+import java.util.Iterator;
+import java.util.Map.Entry;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -331,6 +334,17 @@ public class ConfigHelper {
 		dcfg.setRWBufferSize(cfg.getInt(RawFSConfiguration.RW_BUFFER_SIZE, 4*1024*1024));
 		
 		return dcfg;
-	}		
+	}	
+	
+	public static Configuration copy(Configuration cfg)
+	{
+		Iterator<Entry<String,String>> it = cfg.iterator();
+		Configuration copy = new Configuration();
+		while(it.hasNext()){
+			Entry<String, String> next = it.next();
+			copy.set(next.getKey(), next.getValue());
+		}
+		return copy;
+	}
 	
 }
