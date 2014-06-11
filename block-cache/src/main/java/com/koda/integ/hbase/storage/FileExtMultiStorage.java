@@ -162,7 +162,45 @@ public class FileExtMultiStorage implements ExtStorage {
 		hh = clearHandle(hh);
 		return storages[storageId].isValid(hh);
 	}
+	
+	public long getFlushInterval()
+	{
+		if(storages[0] != null) return storages[0].getFlushInterval();
+		else return -1;
+	}
 
+	public long getCurrentStorageSize()
+	{
+		long size = 0;
+		for(FileExtStorage stor : storages)
+		{
+			size += stor.getCurrentStorageSize();
+		}
+		return size;
+	}
+	
+	public int getMinId()
+	{
+		int min = Integer.MAX_VALUE;
+		for(FileExtStorage stor: storages)
+		{
+			int v = stor.getMinId().get();
+			if( v < min) min = v;
+		}
+		return min;
+	}
+	
+	public int getMaxId()
+	{
+		int max = Integer.MIN_VALUE;
+		for(FileExtStorage stor: storages)
+		{
+			int v = stor.getMaxId().get();
+			if( v > max) max = v;
+		}
+		return max;
+	}
+	
 	private final FileStorageHandle addCacheRootId(FileStorageHandle h, int id)
 	{
 		h.id = id << 24 | h.id; 
@@ -178,6 +216,11 @@ public class FileExtMultiStorage implements ExtStorage {
 	{
 		h.id  = h.id & 0xffffff;
 		return h;
+	}
+
+	public String getFilePath(FileStorageHandle h) {
+		int id = getCacheRootId(h);
+		return storages[id].getFilePath(h.getId() & 0xffffff);
 	}
 	
 }
