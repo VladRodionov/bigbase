@@ -97,38 +97,22 @@ public class FileMultiStorageBaseTest extends TestCase{
 		// 2MB buffer size 
 		config.set(FileExtStorage.FILE_STORAGE_BUFFER_SIZE,"2000000");
 		
-		checkDir();
-		
 		storage = (FileExtMultiStorage) ExtStorageManager.getInstance().getStorage(config, cache);		
 		initDone = true;
 	}
 
-	private void deleteData() {
+	private void deleteData() throws IOException {
 		String[] dirs = baseDir.split(",");
 		for(String sdir: dirs){
 			File dir = new File(sdir);
 			if (dir.exists()) {
-				File[] files = dir.listFiles();
-				for (File f : files) {					
-					f.delete();
-					LOG.info("Deleted "+f.getAbsolutePath());
-				}
+				TestUtils.delete(dir);
+			} else{
+				dir.mkdirs();
 			}
 		}
 	}
 
-  /**
-	 * Check dir.
-	 *
-	 * @throws IOException Signals that an I/O exception has occurred.
-	 */
-	private void checkDir() throws IOException
-	{
-		File dir = new File(baseDir);
-		TestUtils.delete(dir);
-		dir.mkdirs();
-	}
-	
 
 	/**
 	 * Gets the value.
